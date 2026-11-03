@@ -1,24 +1,22 @@
 import type { Locale, MessageKey, Params } from '~/utils/i18n'
-import {
-  LOCALES,
-  LOCALE_STORAGE_KEY,
-  savedLocale,
-  translate,
-} from '~/utils/i18n'
+import { LOCALES, LOCALE_COOKIE, parseLocale, translate } from '~/utils/i18n'
 
-/** La langue de l'appli (anglais par défaut), partagée par toutes les pages. */
+/**
+ * La langue de l'appli (anglais par défaut), partagée par toutes les pages.
+ * Elle est gardée dans un cookie : le serveur (SSR) rend la page directement
+ * dans la bonne langue.
+ */
 export function useI18n() {
-  const locale = useState<Locale>('locale', () =>
-    savedLocale(import.meta.client ? window.localStorage : undefined),
-  )
+  const cookie = useCookie<string | null>(LOCALE_COOKIE, {
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+    default: () => null,
+  })
+  const locale = useState<Locale>('locale', () => parseLocale(cookie.value))
 
   function setLocale(code: Locale): void {
     locale.value = code
-    try {
-      window.localStorage.setItem(LOCALE_STORAGE_KEY, code)
-    } catch {
-      // Stockage bloqué : la langue reste choisie jusqu'au rechargement
-    }
+    cookie.value = code
   }
 
   const t = (key: MessageKey, params?: Params) =>

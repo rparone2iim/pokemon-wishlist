@@ -7,7 +7,8 @@
 # Variables (lues dans apps/api/.env si elles n'existent pas déjà) :
 #   DATABASE_URL         base Supabase (pooler en mode transaction, port 6543, conseillé pour Lambda)
 #   LAMBDA_DATABASE_URL  si l'adresse de la base doit être différente de DATABASE_URL
-#   CORS_ORIGIN          origine(s) du front autorisée(s), séparées par des virgules
+#   LAMBDA_CORS_ORIGIN   origine(s) du front autorisée(s) sur AWS, séparées par des virgules
+#                        (le front Vercel et le dev local) ; sinon CORS_ORIGIN
 #   AWS_REGION           eu-west-3 (Paris) par défaut
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -18,7 +19,7 @@ NAME=pokewishlist-api
 ROLE=pokewishlist-api-lambda
 REGION=${AWS_REGION:-$(aws configure get region || echo eu-west-3)}
 DB_URL=${LAMBDA_DATABASE_URL:-${DATABASE_URL:?DATABASE_URL manquant (voir .env.example)}}
-CORS=${CORS_ORIGIN:-http://localhost:3000}
+CORS=${LAMBDA_CORS_ORIGIN:-${CORS_ORIGIN:-http://localhost:3000}}
 export AWS_REGION=$REGION AWS_PAGER=""
 
 echo "→ Paquet Lambda"
@@ -80,5 +81,5 @@ for _ in $(seq 1 30); do
   if HEALTH=$(curl -sf "$URL/health"); then break; fi
   sleep 2
 done
-echo "  GET /health : ${HEALTH:?l'API ne répond pas}"
+echo "  GET /health : ${HEALTH:?API injoignable}"
 echo "API déployée : $URL"

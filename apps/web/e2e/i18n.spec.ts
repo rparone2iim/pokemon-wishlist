@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { LANG_KEY, apiResponse, expect, test } from './fixtures'
+import { LANG_COOKIE, apiResponse, expect, test } from './fixtures'
 
 // Quatre langues : anglais par défaut, français, espagnol, allemand.
 // Changer de langue modifie l'interface ET les messages de l'API Hono.
@@ -142,8 +142,7 @@ test.describe('i18n : 4 langues', () => {
     await page.reload()
 
     await expect(page.getByRole('link', { name: '> Empezar' })).toBeVisible()
-    expect(
-      await page.evaluate((key) => localStorage.getItem(key), LANG_KEY),
-    ).toBe('es')
+    const cookies = await page.context().cookies()
+    expect(cookies.find((c) => c.name === LANG_COOKIE)?.value).toBe('es')
   })
 })

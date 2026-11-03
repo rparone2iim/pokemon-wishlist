@@ -2,5 +2,7 @@
 // (c'est elle qui interroge PokéAPI).
 export function usePokedex() {
   const api = useApi()
-  return useAsyncData('pokedex', () => api.listPokemon())
+  // Chargée dans le navigateur seulement : la liste complète n'alourdit pas
+  // la page rendue par le serveur.
+  return useAsyncData('pokedex', () => api.listPokemon(), { server: false })
 }
