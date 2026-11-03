@@ -1,38 +1,25 @@
 {
   "name": "pokemon-wishlist",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "dev": "npm run dev -w @pokewishlist/web",
+    "dev:api": "npm run dev -w @pokewishlist/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "typecheck": "nuxt typecheck",
-    "test": "vitest run"
+    "format:check": "prettier --check ."
   },
-  "dependencies": {
-    "@fontsource/press-start-2p": "^5.3.0",
-    "nuxt": "^4.6.3",
-    "vue": "^3.5.44",
-    "vue-router": "^5.4.0"
+  "devDependencies": {
+    "prettier": "^3.9.10"
   },
   "engines": {
     "node": ">=22"
-  },
-  "devDependencies": {
-    "@nuxt/eslint": "^1.17.0",
-    "@tailwindcss/vite": "^4.3.4",
-    "eslint": "^10.14.0",
-    "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.10",
-    "tailwindcss": "^4.3.4",
-    "typescript": "^6.0.3",
-    "vitest": "^5.1.0",
-    "vue-tsc": "^3.3.14"
   }
 }
