@@ -194,3 +194,23 @@ Un test vérifie aussi que le cache `localStorage` continue d'être sauvegardé 
 Résultat : 36 tests sur 36 (18 scénarios × 2 navigateurs).
 
 ![Rapport Playwright](preuves/g2-e2e-playwright.png)
+
+## Global · CI · les tests E2E dans GitHub Actions
+
+Le job **web · Tests E2E (Playwright)** de `ci.yml` construit Hono et Nuxt, **les démarre** (avec une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright sur ces serveurs. Il tourne en parallèle des autres contrôles.
+
+PR : https://github.com/rparone2iim/pokemon-wishlist/pull/10
+
+1. Réponse API cassée : `POST /wishlist` renvoie `200` au lieu de `201`. Les trois serveurs démarrent bien, mais le front ne reconnaît plus la réponse et l'ajout échoue : **E2E rouge**, 12 tests en échec sur 36 (tous ceux qui ajoutent un Pokémon). Les tests unitaires de l'API échouent aussi.
+   Pipeline rouge : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41609376335
+
+   ![E2E rouge](preuves/g3-e2e-ci-rouge.png)
+
+2. Réponse corrigée (`201`) : **E2E vert**, 36 tests sur 36, toute la pipeline est verte.
+   Pipeline verte : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41610121015
+
+   ![E2E vert](preuves/g3-e2e-ci-verte.png)
+
+3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
+
+   ![PR E2E rouge puis verte](preuves/g3-e2e-pr.png)
