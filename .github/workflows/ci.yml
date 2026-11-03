@@ -266,3 +266,67 @@ jobs:
           echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
           echo "$html" | grep -qi '<h1 id="fiche-25"'
           echo "✔ $SITE_URL sert la version $expected, fiche Pikachu rendue par le serveur"
+
+  # CD : le site statique (SSG) part sur S3 + CloudFront quand toute la CI est
+  # verte, uniquement pour un push sur main. Connexion à AWS par OIDC : aucune
+  # clé AWS dans GitHub, un rôle limité à ce bucket et à cette distribution.
+  deploy-ssg:
+    name: web · Déploiement statique S3 + CloudFront
+    needs: [format, i18n, checks, test-api, build-web, build-api, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-ssg
+      url: ${{ vars.SSG_URL }}
+    permissions:
+      contents: read
+      id-token: write # jeton OIDC pour AWS
+    concurrency:
+      group: deploy-ssg-production
+      cancel-in-progress: false
+    env:
+      AWS_REGION: eu-west-3
+      BUCKET: ${{ vars.SSG_BUCKET }}
+      DISTRIBUTION_ID: ${{ vars.SSG_DISTRIBUTION_ID }}
+      SITE_URL: ${{ vars.SSG_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Connexion à AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_SSG_ROLE_ARN }}
+          aws-region: eu-west-3
+
+      # 1. generate : le site statique, branché sur l'API AWS, 151 fiches prégénérées
+      - name: Génération statique (nuxt generate)
+        run: npm run generate -w apps/web
+        env:
+          NUXT_PUBLIC_API_BASE: ${{ vars.API_URL }}
+          PRERENDER_POKEMON: 151
+
+      # 2. sync S3 : fichiers du build gardés un an, pages toujours revalidées
+      - name: Envoi sur S3
+        working-directory: apps/web/.output/public
+        run: |
+          aws s3 sync _nuxt "s3://$BUCKET/_nuxt" --delete --only-show-errors \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync . "s3://$BUCKET" --delete --only-show-errors \
+            --exclude "_nuxt/*" --cache-control "public, max-age=0, must-revalidate"
+
+      # 3. invalidation CloudFront : le CDN sert tout de suite la nouvelle version
+      - name: Invalidation du cache CloudFront
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/*" --query Invalidation.Id --output text)
+          echo "Invalidation $id"
+          aws cloudfront wait invalidation-completed --distribution-id "$DISTRIBUTION_ID" --id "$id"
+
+      - name: Le site statique sert bien ce commit
+        run: |
+          expected=${GITHUB_SHA::7}
+          html=$(curl -sf "$SITE_URL/pokemon/pikachu")
+          echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
+          echo "$html" | grep -q '<h1 id="fiche-25"'
+          echo "✔ $SITE_URL sert la version $expected (fiche Pikachu générée)"
