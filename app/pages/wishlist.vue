@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Pokemon, WishlistItem } from '~/types/pokemon'
 import { fetchPokemon } from '~/utils/pokeapi'
 import { MAX_WISHLIST, nicknameOf } from '~/utils/wishlist'
 
@@ -11,14 +12,15 @@ useHead({ title: 'Ma wishlist · PokéWishlist' })
 const query = ref('')
 
 // Résultat demandé directement à PokéAPI (touche Entrée)
-const remote = ref(null)
-const remoteStatus = ref('idle')
+type RemoteStatus = 'idle' | 'loading' | 'notfound' | 'error'
+const remote = ref<Pokemon | null>(null)
+const remoteStatus = ref<RemoteStatus>('idle')
 watch(query, () => {
   remote.value = null
   remoteStatus.value = 'idle'
 })
 
-const results = computed(() => {
+const results = computed<Pokemon[]>(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return []
   const local = (pokedex.value ?? [])
@@ -27,7 +29,7 @@ const results = computed(() => {
   return local.length || !remote.value ? local : [remote.value]
 })
 
-async function onSubmit() {
+async function onSubmit(): Promise<void> {
   const q = query.value.trim()
   if (!q || results.value.length) return
   remoteStatus.value = 'loading'
@@ -40,26 +42,26 @@ async function onSubmit() {
   }
 }
 
-function onAdd(pokemon) {
+function onAdd(pokemon: Pokemon): void {
   const result = add(pokemon)
   if (result.ok) show(`${displayName(pokemon.name)} rejoint la wishlist !`)
   else if (result.error === 'full')
     show(`Ta wishlist est pleine (${MAX_WISHLIST} max) !`)
 }
 
-function onRemove(item) {
+function onRemove(item: WishlistItem): void {
   remove(item.id)
   show(`${nicknameOf(item)} quitte la wishlist.`)
 }
 
-function onRename(item, nickname) {
+function onRename(item: WishlistItem, nickname: string): void {
   const before = nicknameOf(item)
   rename(item.id, nickname)
   const after = nicknameOf(wishlist.value.find((p) => p.id === item.id) ?? item)
   if (after !== before) show(`${before} s'appelle maintenant ${after} !`)
 }
 
-function onClear() {
+function onClear(): void {
   clear()
   show('La wishlist est vide.')
 }

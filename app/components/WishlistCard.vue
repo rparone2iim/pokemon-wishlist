@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import type { WishlistItem } from '~/types/pokemon'
 import { MAX_NICKNAME, nicknameOf } from '~/utils/wishlist'
 
-const props = defineProps({ item: { type: Object, required: true } })
-const emit = defineEmits(['rename', 'remove'])
+const props = defineProps<{ item: WishlistItem }>()
+const emit = defineEmits<{ rename: [nickname: string]; remove: [] }>()
 
 const editing = ref(false)
 const draft = ref('')
-const input = ref()
+const input = ref<HTMLInputElement>()
 
-async function startEdit() {
+async function startEdit(): Promise<void> {
   draft.value = nicknameOf(props.item)
   editing.value = true
   await nextTick()
@@ -16,13 +17,13 @@ async function startEdit() {
   input.value?.select()
 }
 
-function save() {
+function save(): void {
   if (!editing.value) return
   editing.value = false
   emit('rename', draft.value)
 }
 
-function cancel() {
+function cancel(): void {
   editing.value = false
 }
 </script>

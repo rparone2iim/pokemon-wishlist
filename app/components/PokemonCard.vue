@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineProps({ pokemon: { type: Object, required: true } })
+import type { Pokemon } from '~/types/pokemon'
+
+defineProps<{ pokemon: Pokemon }>()
 </script>
 
 <template>
