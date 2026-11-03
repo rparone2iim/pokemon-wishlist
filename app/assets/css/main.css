@@ -1,0 +1,245 @@
+@import 'tailwindcss';
+
+/* Palette 8 bits */
+@theme {
+  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
+  --color-ink: #181425;
+  --color-paper: #f4efdc;
+  --color-paper-dark: #e6dfc4;
+  --color-panel: #ffffff;
+  --color-shade: #d9d2b8;
+  --color-red: #e43b44;
+  --color-red-dark: #9e2835;
+  --color-blue: #3a64b8;
+  --color-green: #3e8948;
+  --color-yellow: #feae34;
+  --color-muted: #5a6988;
+}
+
+:root {
+  --px: 4px;
+  --pixel-border:
+    0 calc(var(--px) * -1) 0 0 var(--color-ink),
+    0 var(--px) 0 0 var(--color-ink),
+    calc(var(--px) * -1) 0 0 0 var(--color-ink),
+    var(--px) 0 0 0 var(--color-ink);
+  color-scheme: light;
+}
+
+html {
+  background: var(--color-paper);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--color-ink);
+  /* damier discret façon écran de jeu */
+  background: repeating-conic-gradient(
+      var(--color-paper-dark) 0 25%,
+      var(--color-paper) 0 50%
+    )
+    0 0 / 8px 8px;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+::selection {
+  background: var(--color-yellow);
+  color: var(--color-ink);
+}
+
+@layer components {
+  /* Boîte à bords pixel (coins crantés) */
+  .pixel-box {
+    margin: var(--px);
+    background: var(--color-panel);
+    box-shadow:
+      var(--pixel-border),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--color-shade);
+  }
+
+  /* Boîte de dialogue façon jeu */
+  .dialog {
+    position: relative;
+    margin: var(--px);
+    padding: 20px 24px 28px;
+    background: var(--color-panel);
+    border: var(--px) solid var(--color-ink);
+    box-shadow:
+      inset 0 0 0 var(--px) var(--color-panel),
+      inset 0 0 0 calc(var(--px) * 2) var(--color-muted);
+    line-height: 2.2;
+  }
+
+  .dialog--cursor::after {
+    content: '';
+    position: absolute;
+    right: 18px;
+    bottom: 14px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--color-red);
+    animation: blink 1s steps(1) infinite;
+  }
+
+  /* Boutons */
+  .pixel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: var(--px);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 9px;
+    line-height: 1;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--color-red);
+    border: 0;
+    cursor: pointer;
+    box-shadow:
+      var(--pixel-border),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 rgb(0 0 0 / 0.3),
+      inset var(--px) var(--px) 0 0 rgb(255 255 255 / 0.3);
+  }
+
+  .pixel-btn:hover {
+    filter: brightness(1.1);
+  }
+
+  .pixel-btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      var(--pixel-border),
+      inset var(--px) var(--px) 0 0 rgb(0 0 0 / 0.3);
+  }
+
+  .pixel-btn:focus-visible,
+  .pixel-input:focus-visible {
+    outline: var(--px) dashed var(--color-yellow);
+    outline-offset: 8px;
+  }
+
+  .pixel-btn:disabled {
+    cursor: default;
+    color: var(--color-muted);
+    background: var(--color-shade);
+    filter: none;
+    transform: none;
+    box-shadow:
+      var(--pixel-border),
+      inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 rgb(0 0 0 / 0.1);
+  }
+
+  .pixel-btn--blue {
+    background: var(--color-blue);
+  }
+
+  .pixel-btn--ghost {
+    color: var(--color-ink);
+    background: var(--color-paper);
+  }
+
+  /* Champ texte */
+  .pixel-input {
+    width: calc(100% - var(--px) * 2);
+    margin: var(--px);
+    padding: 16px 16px 16px 44px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--color-ink);
+    background: var(--color-panel);
+    border: 0;
+    border-radius: 0;
+    box-shadow:
+      var(--pixel-border),
+      inset var(--px) var(--px) 0 0 var(--color-shade);
+    appearance: none;
+  }
+
+  .pixel-input::placeholder {
+    color: var(--color-muted);
+    opacity: 0.7;
+  }
+
+  .pixel-input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .pixel-input--sm {
+    padding: 6px 8px;
+    font-size: 9px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* Étiquette lisible posée sur le décor */
+  .pixel-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: var(--px);
+    padding: 8px 12px;
+    background: var(--color-paper);
+    box-shadow: var(--pixel-border);
+  }
+
+  /* Pastille compteur */
+  .pixel-badge {
+    display: inline-block;
+    margin: var(--px);
+    padding: 6px 8px;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--color-ink);
+    background: var(--color-yellow);
+    box-shadow: var(--pixel-border);
+  }
+
+  .title {
+    font-size: clamp(18px, 5vw, 32px);
+    line-height: 1.3;
+    color: var(--color-red);
+    text-shadow:
+      var(--px) var(--px) 0 var(--color-ink),
+      calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--color-yellow);
+  }
+
+  .blink {
+    animation: blink 1s steps(1) infinite;
+  }
+
+  .hop {
+    animation: hop 0.5s steps(2) infinite;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes hop {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
