@@ -115,6 +115,9 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run build -w apps/api
 
+      - name: Paquet AWS Lambda (esbuild)
+        run: npm run build:lambda -w apps/api
+
       - name: Schéma de la base (db/init.sql)
         run: npm run db:init -w apps/api
 

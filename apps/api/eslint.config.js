@@ -4,7 +4,7 @@ import prettier from 'eslint-config-prettier/flat'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'dist-lambda'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

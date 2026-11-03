@@ -428,3 +428,32 @@ PR : https://github.com/rparone2iim/pokemon-wishlist/pull/17
 3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
 
    ![PR traductions rouge puis verte](preuves/locales-pr.png)
+
+## AWS · API · Hono déployé sur Lambda
+
+- **Hono adapté à Lambda** : `apps/api/src/lambda.ts` exporte `handle(app)` (`hono/aws-lambda`), avec la même app et la même base que le serveur Node. Le paquet est construit par esbuild (`npm run build:lambda`), et la CI le construit à chaque push.
+- **AWS** (`npm run deploy:lambda`, AWS CLI) : la fonction Lambda `pokewishlist-api` (Node 22, arm64, `eu-west-3`) avec un rôle IAM minimal (logs CloudWatch), et une API HTTP API Gateway qui envoie toutes les routes à la Lambda.
+- **Supabase** : la Lambda se connecte au pooler Supabase en mode transaction (port 6543, adapté aux fonctions serverless), avec vérification du certificat. Le mot de passe est passé en variable d'environnement chiffrée, jamais commité.
+- **CORS** : `CORS_ORIGIN` sur la Lambda, appliqué par Hono.
+
+Vérification : `/health` et `/wishlist` répondent via AWS.
+
+```text
+$ curl https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com/health
+{"status":"ok","service":"pokewishlist-api"}
+$ curl https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com/wishlist
+[{"id":5,"name":"charmeleon","addedAt":"2026-11-03T11:23:25.518Z"},{"id":390,"name":"chimchar","addedAt":"2026-11-03T11:23:27.045Z"},{"id":609,"name":"chandelure","addedAt":"2026-11-03T11:23:29.771Z"}]
+$ curl -i -H 'Origin: http://localhost:3000' https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com/health
+HTTP/2 200
+access-control-allow-origin: http://localhost:3000
+```
+
+![GET /health via AWS](preuves/aws-health.png)
+
+![GET /wishlist via AWS](preuves/aws-wishlist.png)
+
+Le vrai front, branché sur l'API AWS (`NUXT_PUBLIC_API_BASE`), dans Chromium et WebKit : Pikachu est ajouté (`POST /wishlist` → 201 via AWS), apparaît dans `GET /wishlist` d'AWS, puis est retiré (`DELETE` → 200).
+
+![Front branché sur l'API AWS](preuves/aws-front.png)
+
+Tests : `apps/api/test/lambda.test.ts` envoie de vrais événements API Gateway (format 2.0) au gestionnaire Lambda : `/health`, `/wishlist` sur la base de test, CORS et erreurs traduites.
