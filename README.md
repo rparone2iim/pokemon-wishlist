@@ -92,5 +92,6 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 2. Prettier sur tout le dépôt
 3. Lint, typecheck et tests Vitest pour **web** et **api**, en parallèle
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
+5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
 
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).

@@ -68,3 +68,61 @@ jobs:
           done
           echo
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/health)" = 200
+
+  # Tests end-to-end : la CI démarre Hono et Nuxt, puis lance Playwright.
+  # Ce job tourne en parallèle des autres : une réponse d'API cassée
+  # le fait passer au rouge même si un autre contrôle échoue aussi.
+  e2e:
+    name: web · Tests E2E (Playwright)
+    runs-on: ubuntu-latest
+    env:
+      # Ports et adresses : les mêmes que dans apps/web/playwright.config.ts
+      WEB_URL: http://localhost:4000
+      API_URL: http://localhost:4001
+      POKEAPI_URL: http://localhost:4002/api/v2
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Navigateurs Playwright
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build de Hono et de Nuxt
+        run: |
+          npm run build -w apps/api
+          npm run build -w apps/web
+
+      - name: Démarrer Hono et Nuxt
+        run: |
+          # Fausse PokéAPI : les tests ne dépendent pas d'Internet
+          PORT=4002 node apps/web/e2e/mock-pokeapi.mjs > pokeapi.log 2>&1 &
+          # API Hono
+          PORT=4001 CORS_ORIGIN=$WEB_URL POKEAPI_URL=$POKEAPI_URL \
+            node apps/api/dist/index.js > hono.log 2>&1 &
+          # Front Nuxt, branché sur l'API
+          PORT=4000 NUXT_PUBLIC_API_BASE=$API_URL \
+            node apps/web/.output/server/index.mjs > nuxt.log 2>&1 &
+
+          for url in http://localhost:4002/health $API_URL/health $WEB_URL; do
+            for i in $(seq 1 60); do curl -sf "$url" > /dev/null && break; sleep 1; done
+            curl -sf "$url" > /dev/null && echo "✔ $url répond"
+          done
+          curl -s $API_URL/health
+
+      - name: Playwright
+        run: npm run test:e2e
+        env:
+          # Les serveurs tournent déjà : Playwright les utilise tels quels
+          E2E_SERVERS_STARTED: '1'
+
+      - name: Logs des serveurs
+        if: failure()
+        run: tail -n 50 pokeapi.log hono.log nuxt.log
+
+      - name: Rapport Playwright
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
