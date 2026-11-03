@@ -68,6 +68,16 @@ Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }` · de `PATCH` : `{
   - `test/wishlist.test.ts` : routes `/wishlist` avec `app.request()` (200, 201, 204, 400, 404, 409), CORS
   - `test/health.test.ts` : `GET /health`
 
+## Base de données (Supabase · PostgreSQL)
+
+Le schéma est dans `apps/api/db/init.sql` : la table `wishlist` (clé primaire `pokemon_id` contre les doublons, trigger `wishlist_max_6` pour la règle des 6 Pokémon, RLS activé pour fermer l'API REST de Supabase). Le script peut être relancé sans risque.
+
+```bash
+cp apps/api/.env.example apps/api/.env   # puis y mettre la chaîne de connexion Supabase
+set -a; . apps/api/.env; set +a
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/db/init.sql
+```
+
 ## Scripts (à la racine)
 
 | Commande               | Rôle                                                             |
