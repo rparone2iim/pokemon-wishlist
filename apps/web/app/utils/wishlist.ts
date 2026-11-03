@@ -12,7 +12,13 @@ export type AddError = 'duplicate' | 'full' | 'network'
 
 export type AddResult =
   | { ok: true; list: WishlistItem[] }
-  | { ok: false; error: AddError; list: readonly WishlistItem[] }
+  | {
+      ok: false
+      error: AddError
+      list: readonly WishlistItem[]
+      /** Message de l'API (dans la langue choisie) quand c'est elle qui refuse. */
+      message?: string
+    }
 
 export function isInWishlist(
   list: readonly WishlistItem[],

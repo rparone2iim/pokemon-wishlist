@@ -19,11 +19,11 @@ export interface ApiError {
 
 /** Fiche détaillée d'un Pokémon (GET /pokemon/:nomOuId), construite depuis PokéAPI. */
 export interface PokemonDetails extends Pokemon {
-  /** Nom français (espèce PokéAPI) ; null s'il est inconnu. */
-  frenchName: string | null
-  /** Catégorie du Pokédex, par exemple « Pokémon Souris ». */
+  /** Nom dans la langue demandée (espèce PokéAPI) ; null s'il est inconnu. */
+  localName: string | null
+  /** Catégorie du Pokédex, par exemple « Mouse Pokémon » ou « Pokémon Souris ». */
   genus: string | null
-  /** Description du Pokédex en français. */
+  /** Description du Pokédex dans la langue demandée. */
   description: string | null
   /** Types en anglais, comme dans PokéAPI (« electric »…). */
   types: string[]

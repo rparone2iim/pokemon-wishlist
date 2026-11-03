@@ -1,0 +1,86 @@
+{
+  "app": {
+    "language": "Sprache"
+  },
+  "home": {
+    "welcome": "Willkommen im Garten! Hier laufen wilde Pokémon herum... Welche willst du fangen?",
+    "start": "> Los geht's",
+    "count": "{count} auf deiner Wunschliste"
+  },
+  "wishlist": {
+    "pageTitle": "Meine Wunschliste",
+    "back": "< Start",
+    "search": "Suche",
+    "searchLabel": "Ein Pokémon suchen",
+    "searchPlaceholder": "Name oder Nummer...",
+    "loading": "Wird geladen",
+    "inList": "Auf der Liste",
+    "full": "Liste voll",
+    "add": "+ Hinzufügen",
+    "notFound": "„{query}“ ist auf PokéAPI nicht zu finden (404).",
+    "pokeApiDown": "PokéAPI ist nicht erreichbar...",
+    "noMatch": "Kein Pokémon heißt „{query}“... Drück Enter, um PokéAPI zu fragen.",
+    "title": "Meine Wunschliste",
+    "clear": "Alles leeren",
+    "offline": "Die API antwortet nicht: Hier ist die letzte bekannte Liste.",
+    "empty": "Deine Wunschliste ist leer. Füge Pokémon über die Suche hinzu!"
+  },
+  "toast": {
+    "added": "{name} kommt auf die Wunschliste!",
+    "duplicate": "{name} ist schon auf deiner Wunschliste!",
+    "full": "Deine Wunschliste ist voll (max. {max})!",
+    "removed": "{name} verlässt die Wunschliste.",
+    "renamed": "{before} heißt jetzt {after}!",
+    "cleared": "Die Wunschliste ist leer.",
+    "offline": "Die API antwortet nicht, versuch es später noch einmal."
+  },
+  "card": {
+    "viewPage": "Seite von {name} ansehen",
+    "nicknameOf": "Spitzname von {name}",
+    "rename": "Umbenennen",
+    "ok": "OK",
+    "remove": "x Entfernen"
+  },
+  "pokemon": {
+    "back": "< Wunschliste",
+    "apiDown": "Die API ist nicht erreichbar... Versuch es später noch einmal.",
+    "notFoundTitle": "Unbekanntes Pokémon",
+    "notFoundMessage": "{message}: „{name}“ (404).",
+    "notFoundHelp": "Prüfe den Namen oder suche es über die Wunschliste.",
+    "types": "Typen",
+    "height": "Größe",
+    "weight": "Gewicht",
+    "abilities": "Fähigkeiten",
+    "hidden": "(versteckt)",
+    "stats": "Statuswerte",
+    "addToWishlist": "+ Zur Wunschliste hinzufügen"
+  },
+  "types": {
+    "normal": "Normal",
+    "fire": "Feuer",
+    "water": "Wasser",
+    "electric": "Elektro",
+    "grass": "Pflanze",
+    "ice": "Eis",
+    "fighting": "Kampf",
+    "poison": "Gift",
+    "ground": "Boden",
+    "flying": "Flug",
+    "psychic": "Psycho",
+    "bug": "Käfer",
+    "rock": "Gestein",
+    "ghost": "Geist",
+    "dragon": "Drache",
+    "dark": "Unlicht",
+    "steel": "Stahl",
+    "fairy": "Fee"
+  },
+  "stats": {
+    "hp": "KP",
+    "attack": "Angriff",
+    "defense": "Verteidigung",
+    "special-attack": "Sp.-Angr.",
+    "special-defense": "Sp.-Vert.",
+    "speed": "Initiative"
+  }
+}

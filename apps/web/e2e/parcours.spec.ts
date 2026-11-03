@@ -114,7 +114,10 @@ test('doublon refusé par l’API (409) si le Pokémon a été ajouté ailleurs 
     .getByRole('button', { name: /Ajouter/ })
     .click()
 
-  await expect(toast(page)).toContainText(/déjà dans ta wishlist/i)
+  // C'est le message de l'API (409), traduit par elle dans la langue choisie
+  await expect(toast(page)).toContainText(
+    'Ce Pokémon est déjà dans la wishlist',
+  )
   // Une seule fois dans la liste, comme dans l'API
   await expect(cards(page)).toHaveCount(1)
   expect(await apiNames(request, api)).toEqual(['pikachu'])

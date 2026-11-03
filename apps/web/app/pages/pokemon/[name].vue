@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { PokemonDetails } from '~/types/pokemon'
+import type { PokemonLookup } from '~/utils/api'
+import type { MessageKey } from '~/utils/i18n'
+import { hasMessage, localeTag } from '~/utils/i18n'
 import { MAX_WISHLIST } from '~/utils/wishlist'
 
 // Fiche d'un Pokémon : /pokemon/pikachu, /pokemon/25… (via l'API Hono, qui interroge PokéAPI)
@@ -7,39 +10,56 @@ const route = useRoute()
 const api = useApi()
 const { has, isFull, add } = useWishlist()
 const { show } = useToast()
+const { t, locale } = useI18n()
 
 const name = computed(() => String(route.params.name ?? ''))
 
+// La clé contient la langue : changer de langue redemande la fiche (et le
+// message d'erreur de l'API) dans la nouvelle langue.
 const {
-  data: pokemon,
+  data: lookup,
   status,
   error,
-} = useAsyncData<PokemonDetails | null>(
-  () => `pokemon:${name.value.toLowerCase()}`,
+} = useAsyncData<PokemonLookup>(
+  () => `pokemon:${locale.value}:${name.value.toLowerCase()}`,
   () => api.getPokemon(name.value),
 )
 
-/** Le nom affiché : le nom français s'il est connu, sinon celui de PokéAPI. */
+const pokemon = computed<PokemonDetails | null>(() =>
+  lookup.value?.ok ? lookup.value.pokemon : null,
+)
+/** Message de l'API quand le Pokémon est introuvable, traduit par l'API. */
+const apiMessage = computed(() =>
+  lookup.value && !lookup.value.ok ? lookup.value.message : '',
+)
+
+/** Le nom affiché : le nom dans la langue choisie s'il est connu, sinon celui de PokéAPI. */
 const title = computed(() =>
   pokemon.value
-    ? (pokemon.value.frenchName ?? displayName(pokemon.value.name))
+    ? (pokemon.value.localName ?? displayName(pokemon.value.name))
     : '',
 )
 
+const tag = computed(() => localeTag(locale.value))
+
+/** Libellé traduit d'un type ou d'une stat ; un nom inconnu reste lisible. */
+function label(group: 'types' | 'stats', key: string): string {
+  const path = `${group}.${key}`
+  return hasMessage(path) ? t(path as MessageKey) : displayName(key)
+}
+
 useHead(() => ({
-  title: pokemon.value
-    ? `${title.value} · PokéWishlist`
-    : 'Pokémon introuvable · PokéWishlist',
+  title: `${pokemon.value ? title.value : t('pokemon.notFoundTitle')} · PokéWishlist`,
 }))
 
 async function onAdd(details: PokemonDetails): Promise<void> {
   const result = await add({ id: details.id, name: details.name })
-  if (result.ok) show(`${title.value} rejoint la wishlist !`)
-  else if (result.error === 'duplicate')
-    show(`${title.value} est déjà dans ta wishlist !`)
-  else if (result.error === 'full')
-    show(`Ta wishlist est pleine (${MAX_WISHLIST} max) !`)
-  else show("L'API ne répond pas, réessaie plus tard.")
+  if (result.ok) return show(t('toast.added', { name: title.value }))
+  if (result.message) return show(result.message)
+  if (result.error === 'duplicate')
+    show(t('toast.duplicate', { name: title.value }))
+  else if (result.error === 'full') show(t('toast.full', { max: MAX_WISHLIST }))
+  else show(t('toast.offline'))
 }
 </script>
 
@@ -49,15 +69,15 @@ async function onAdd(details: PokemonDetails): Promise<void> {
 
     <main class="relative z-10 mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
       <NuxtLink to="/wishlist" class="pixel-btn pixel-btn--ghost self-start">
-        &lt; Wishlist
+        {{ t('pokemon.back') }}
       </NuxtLink>
 
       <p v-if="status === 'pending'" class="dialog">
-        Chargement<span class="blink">...</span>
+        {{ t('wishlist.loading') }}<span class="blink">...</span>
       </p>
 
       <p v-else-if="error" class="dialog text-red" role="alert">
-        Impossible de contacter l'API... Réessaie plus tard.
+        {{ t('pokemon.apiDown') }}
       </p>
 
       <section
@@ -66,11 +86,15 @@ async function onAdd(details: PokemonDetails): Promise<void> {
         aria-labelledby="notfound-title"
       >
         <h1 id="notfound-title" class="pixel-label self-start text-xs">
-          <span><span class="text-red">&gt;</span> Pokémon introuvable</span>
+          <span
+            ><span class="text-red">&gt;</span>
+            {{ t('pokemon.notFoundTitle') }}</span
+          >
         </h1>
         <p class="dialog dialog--cursor">
-          « {{ name }} » est introuvable sur PokéAPI (404). Vérifie le nom ou
-          cherche-le depuis la wishlist.
+          <!-- Le message vient de l'API Hono (404), traduit par elle -->
+          {{ t('pokemon.notFoundMessage', { message: apiMessage, name }) }}
+          {{ t('pokemon.notFoundHelp') }}
         </p>
       </section>
 
@@ -103,20 +127,22 @@ async function onAdd(details: PokemonDetails): Promise<void> {
               {{ title }}
             </h1>
             <p
-              v-if="pokemon.frenchName"
+              v-if="
+                title.toLowerCase() !== displayName(pokemon.name).toLowerCase()
+              "
               class="text-[8px] text-muted uppercase"
             >
               {{ displayName(pokemon.name) }}
             </p>
             <p v-if="pokemon.genus" class="text-[9px]">{{ pokemon.genus }}</p>
-            <ul class="flex flex-wrap gap-2" aria-label="Types">
+            <ul class="flex flex-wrap gap-2" :aria-label="t('pokemon.types')">
               <li
                 v-for="type in pokemon.types"
                 :key="type"
                 class="px-3 py-1 text-[9px] text-white uppercase [text-shadow:1px_1px_0_var(--color-ink)] shadow-[var(--pixel-border)]"
                 :style="{ backgroundColor: typeColor(type) }"
               >
-                {{ typeLabel(type) }}
+                {{ label('types', type) }}
               </li>
             </ul>
           </div>
@@ -128,22 +154,26 @@ async function onAdd(details: PokemonDetails): Promise<void> {
 
         <dl class="grid grid-cols-1 gap-3 text-[9px] sm:grid-cols-3">
           <div class="flex flex-col gap-1">
-            <dt class="text-muted uppercase">Taille</dt>
-            <dd>{{ formatHeight(pokemon.height) }}</dd>
+            <dt class="text-muted uppercase">{{ t('pokemon.height') }}</dt>
+            <dd>{{ formatHeight(pokemon.height, tag) }}</dd>
           </div>
           <div class="flex flex-col gap-1">
-            <dt class="text-muted uppercase">Poids</dt>
-            <dd>{{ formatWeight(pokemon.weight) }}</dd>
+            <dt class="text-muted uppercase">{{ t('pokemon.weight') }}</dt>
+            <dd>{{ formatWeight(pokemon.weight, tag) }}</dd>
           </div>
           <div class="flex flex-col gap-1">
-            <dt class="text-muted uppercase">Talents</dt>
+            <dt class="text-muted uppercase">
+              {{ t('pokemon.abilities') }}
+            </dt>
             <dd>
               <span
                 v-for="(ability, i) in pokemon.abilities"
                 :key="ability.name"
               >
                 {{ displayName(ability.name)
-                }}<span v-if="ability.hidden" class="text-muted"> (caché)</span
+                }}<span v-if="ability.hidden" class="text-muted">{{
+                  ` ${t('pokemon.hidden')}`
+                }}</span
                 ><span v-if="i < pokemon.abilities.length - 1">, </span>
               </span>
             </dd>
@@ -152,7 +182,9 @@ async function onAdd(details: PokemonDetails): Promise<void> {
 
         <section aria-labelledby="stats-title" class="flex flex-col gap-3">
           <h2 id="stats-title" class="pixel-label self-start text-[10px]">
-            <span><span class="text-red">&gt;</span> Statistiques</span>
+            <span
+              ><span class="text-red">&gt;</span> {{ t('pokemon.stats') }}</span
+            >
           </h2>
           <ul class="flex flex-col gap-2">
             <li
@@ -160,12 +192,12 @@ async function onAdd(details: PokemonDetails): Promise<void> {
               :key="stat.name"
               class="grid grid-cols-[6rem_2.5rem_1fr] items-center gap-2 text-[8px]"
             >
-              <span class="uppercase">{{ statLabel(stat.name) }}</span>
+              <span class="uppercase">{{ label('stats', stat.name) }}</span>
               <span class="text-right">{{ stat.value }}</span>
               <span
                 class="h-3 bg-paper-dark"
                 role="meter"
-                :aria-label="statLabel(stat.name)"
+                :aria-label="label('stats', stat.name)"
                 :aria-valuenow="stat.value"
                 aria-valuemin="0"
                 aria-valuemax="255"
@@ -192,7 +224,7 @@ async function onAdd(details: PokemonDetails): Promise<void> {
           class="pixel-btn self-start"
           disabled
         >
-          Dans la liste
+          {{ t('wishlist.inList') }}
         </button>
         <button
           v-else-if="isFull"
@@ -200,7 +232,7 @@ async function onAdd(details: PokemonDetails): Promise<void> {
           class="pixel-btn self-start"
           disabled
         >
-          Liste pleine
+          {{ t('wishlist.full') }}
         </button>
         <button
           v-else
@@ -208,7 +240,7 @@ async function onAdd(details: PokemonDetails): Promise<void> {
           class="pixel-btn self-start"
           @click="onAdd(pokemon)"
         >
-          + Ajouter à la wishlist
+          {{ t('pokemon.addToWishlist') }}
         </button>
       </article>
     </main>

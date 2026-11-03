@@ -2,13 +2,15 @@
 import type { Pokemon } from '~/types/pokemon'
 
 defineProps<{ pokemon: Pokemon }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
   <article class="pixel-box group flex flex-col items-center gap-2 p-3">
     <NuxtLink
       :to="`/pokemon/${pokemon.name}`"
-      :aria-label="`Voir la fiche de ${displayName(pokemon.name)}`"
+      :aria-label="t('card.viewPage', { name: displayName(pokemon.name) })"
       class="flex w-full justify-center bg-paper py-1 shadow-[inset_0_-4px_0_0_var(--color-paper-dark)] hover:bg-paper-dark focus-visible:outline-4 focus-visible:outline-blue"
     >
       <img

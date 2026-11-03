@@ -2,6 +2,7 @@
 useHead({ title: 'PokéWishlist' })
 
 const { wishlist } = useWishlist()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -17,19 +18,18 @@ const { wishlist } = useWishlist()
       </div>
 
       <p class="dialog dialog--cursor w-full">
-        Bienvenue dans le jardin ! Des Pokémon sauvages s'y baladent... Lesquels
-        veux-tu capturer ?
+        {{ t('home.welcome') }}
       </p>
 
       <div class="flex flex-wrap items-stretch justify-center gap-4">
         <NuxtLink to="/wishlist" class="pixel-btn px-6 py-4 text-[11px]">
-          &gt; Commencer
+          {{ t('home.start') }}
         </NuxtLink>
         <span
           v-if="wishlist.length"
           class="pixel-badge inline-flex items-center px-4 py-4 text-[11px]"
         >
-          {{ wishlist.length }} dans ta wishlist
+          {{ t('home.count', { count: wishlist.length }) }}
         </span>
       </div>
     </main>

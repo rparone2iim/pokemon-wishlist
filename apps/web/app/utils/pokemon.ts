@@ -10,47 +10,30 @@ export function dexNumber(id: number): string {
   return `No.${String(id).padStart(4, '0')}`
 }
 
-/** Les 18 types, en français, avec leur couleur. */
-const TYPES: Record<string, { label: string; color: string }> = {
-  normal: { label: 'Normal', color: '#a8a77a' },
-  fire: { label: 'Feu', color: '#ee8130' },
-  water: { label: 'Eau', color: '#6390f0' },
-  electric: { label: 'Électrik', color: '#f7d02c' },
-  grass: { label: 'Plante', color: '#7ac74c' },
-  ice: { label: 'Glace', color: '#96d9d6' },
-  fighting: { label: 'Combat', color: '#c22e28' },
-  poison: { label: 'Poison', color: '#a33ea1' },
-  ground: { label: 'Sol', color: '#e2bf65' },
-  flying: { label: 'Vol', color: '#a98ff3' },
-  psychic: { label: 'Psy', color: '#f95587' },
-  bug: { label: 'Insecte', color: '#a6b91a' },
-  rock: { label: 'Roche', color: '#b6a136' },
-  ghost: { label: 'Spectre', color: '#735797' },
-  dragon: { label: 'Dragon', color: '#6f35fc' },
-  dark: { label: 'Ténèbres', color: '#705746' },
-  steel: { label: 'Acier', color: '#b7b7ce' },
-  fairy: { label: 'Fée', color: '#d685ad' },
-}
-
-export function typeLabel(type: string): string {
-  return TYPES[type]?.label ?? displayName(type)
+/** La couleur de chacun des 18 types (leurs noms sont dans i18n/locales). */
+const TYPE_COLORS: Record<string, string> = {
+  normal: '#a8a77a',
+  fire: '#ee8130',
+  water: '#6390f0',
+  electric: '#f7d02c',
+  grass: '#7ac74c',
+  ice: '#96d9d6',
+  fighting: '#c22e28',
+  poison: '#a33ea1',
+  ground: '#e2bf65',
+  flying: '#a98ff3',
+  psychic: '#f95587',
+  bug: '#a6b91a',
+  rock: '#b6a136',
+  ghost: '#735797',
+  dragon: '#6f35fc',
+  dark: '#705746',
+  steel: '#b7b7ce',
+  fairy: '#d685ad',
 }
 
 export function typeColor(type: string): string {
-  return TYPES[type]?.color ?? '#a8a77a'
-}
-
-const STATS: Record<string, string> = {
-  hp: 'PV',
-  attack: 'Attaque',
-  defense: 'Défense',
-  'special-attack': 'Atq. Spé.',
-  'special-defense': 'Déf. Spé.',
-  speed: 'Vitesse',
-}
-
-export function statLabel(stat: string): string {
-  return STATS[stat] ?? displayName(stat)
+  return TYPE_COLORS[type] ?? '#a8a77a'
 }
 
 /** Une statistique de base va de 1 à 255 : sa part, en pourcentage. */
@@ -58,14 +41,16 @@ export function statPercent(value: number): number {
   return Math.min(100, Math.max(0, Math.round((value / 255) * 100)))
 }
 
-const number = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 })
-
-/** Taille en mètres, à la française : « 0,4 m ». */
-export function formatHeight(meters: number): string {
-  return `${number.format(meters)} m`
+function formatNumber(value: number, tag: string): string {
+  return new Intl.NumberFormat(tag, { maximumFractionDigits: 1 }).format(value)
 }
 
-/** Poids en kilos, à la française : « 6 kg ». */
-export function formatWeight(kilos: number): string {
-  return `${number.format(kilos)} kg`
+/** Taille en mètres, au format de la langue : « 0.4 m », « 0,4 m ». */
+export function formatHeight(meters: number, tag = 'en-US'): string {
+  return `${formatNumber(meters, tag)} m`
+}
+
+/** Poids en kilos, au format de la langue : « 90.5 kg », « 90,5 kg ». */
+export function formatWeight(kilos: number, tag = 'en-US'): string {
+  return `${formatNumber(kilos, tag)} kg`
 }

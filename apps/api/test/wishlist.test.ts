@@ -75,7 +75,7 @@ describe('POST /wishlist', () => {
 
     expect(res.status).toBe(409)
     expect(await res.json()).toEqual({
-      error: 'Ce Pokémon est déjà dans la wishlist',
+      error: 'This Pokémon is already in the wishlist',
       code: 'duplicate',
     })
     expect(await rows()).toHaveLength(1)
@@ -140,7 +140,7 @@ describe('DELETE /wishlist/:id', () => {
 
     expect(res.status).toBe(404)
     expect(await res.json()).toEqual({
-      error: "Ce Pokémon n'est pas dans la wishlist",
+      error: 'This Pokémon is not in the wishlist',
     })
   })
 

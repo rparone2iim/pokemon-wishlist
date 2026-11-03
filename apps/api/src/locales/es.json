@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "routeNotFound": "Ruta no encontrada",
+    "invalidBody": "Cuerpo esperado: { \"id\": number, \"name\": string }",
+    "invalidNicknameBody": "Cuerpo esperado: { \"nickname\": string }",
+    "invalidId": "Identificador no válido",
+    "duplicate": "Este Pokémon ya está en la lista de deseos",
+    "full": "La lista de deseos está llena ({max} como máximo)",
+    "notInWishlist": "Este Pokémon no está en la lista de deseos",
+    "invalidName": "Nombre o número no válido",
+    "pokemonNotFound": "Pokémon no encontrado",
+    "pokeApiDown": "PokéAPI no responde"
+  }
+}

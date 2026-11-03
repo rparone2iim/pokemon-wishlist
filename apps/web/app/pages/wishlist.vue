@@ -15,8 +15,9 @@ const {
 } = useWishlist()
 const { show } = useToast()
 const api = useApi()
+const { t } = useI18n()
 
-useHead({ title: 'Ma wishlist · PokéWishlist' })
+useHead(() => ({ title: `${t('wishlist.pageTitle')} · PokéWishlist` }))
 
 const query = ref('')
 
@@ -44,43 +45,45 @@ async function onSubmit(): Promise<void> {
   remoteStatus.value = 'loading'
   try {
     const found = await api.getPokemon(q)
-    remote.value = found
-    remoteStatus.value = found ? 'idle' : 'notfound'
+    remote.value = found.ok ? found.pokemon : null
+    remoteStatus.value = found.ok ? 'idle' : 'notfound'
   } catch {
     remoteStatus.value = 'error'
   }
 }
 
-const OFFLINE = "L'API ne répond pas, réessaie plus tard."
+const offline = () => show(t('toast.offline'))
 
 async function onAdd(pokemon: Pokemon): Promise<void> {
+  const name = displayName(pokemon.name)
   const result = await add(pokemon)
-  if (result.ok) show(`${displayName(pokemon.name)} rejoint la wishlist !`)
-  else if (result.error === 'duplicate')
-    show(`${displayName(pokemon.name)} est déjà dans ta wishlist !`)
-  else if (result.error === 'full')
-    show(`Ta wishlist est pleine (${MAX_WISHLIST} max) !`)
-  else if (result.error === 'network') show(OFFLINE)
+  if (result.ok) return show(t('toast.added', { name }))
+  // Refus de l'API (409) : son message, déjà traduit dans la langue choisie
+  if (result.message) return show(result.message)
+  if (result.error === 'duplicate') show(t('toast.duplicate', { name }))
+  else if (result.error === 'full') show(t('toast.full', { max: MAX_WISHLIST }))
+  else offline()
 }
 
 async function onRemove(item: WishlistItem): Promise<void> {
-  if (await remove(item.id)) show(`${nicknameOf(item)} quitte la wishlist.`)
-  else if (apiStatus.value === 'offline') show(OFFLINE)
+  if (await remove(item.id))
+    show(t('toast.removed', { name: nicknameOf(item) }))
+  else if (apiStatus.value === 'offline') offline()
 }
 
 async function onRename(item: WishlistItem, nickname: string): Promise<void> {
   const before = nicknameOf(item)
   if (!(await rename(item.id, nickname))) {
-    if (apiStatus.value === 'offline') show(OFFLINE)
+    if (apiStatus.value === 'offline') offline()
     return
   }
   const after = nicknameOf(wishlist.value.find((p) => p.id === item.id) ?? item)
-  if (after !== before) show(`${before} s'appelle maintenant ${after} !`)
+  if (after !== before) show(t('toast.renamed', { before, after }))
 }
 
 async function onClear(): Promise<void> {
-  if (await clear()) show('La wishlist est vide.')
-  else show(OFFLINE)
+  if (await clear()) show(t('toast.cleared'))
+  else offline()
 }
 </script>
 
@@ -91,14 +94,16 @@ async function onClear(): Promise<void> {
     <main
       class="relative z-10 mx-auto flex max-w-5xl flex-col gap-10 px-4 py-8"
     >
-      <h1 class="sr-only">Ma wishlist</h1>
+      <h1 class="sr-only">{{ t('wishlist.pageTitle') }}</h1>
       <NuxtLink to="/" class="pixel-btn pixel-btn--ghost self-start">
-        &lt; Accueil
+        {{ t('wishlist.back') }}
       </NuxtLink>
 
       <section class="flex flex-col gap-4" aria-labelledby="search-title">
         <h2 id="search-title" class="pixel-label self-start text-xs uppercase">
-          <span><span class="text-red">&gt;</span> Recherche</span>
+          <span
+            ><span class="text-red">&gt;</span> {{ t('wishlist.search') }}</span
+          >
         </h2>
         <form class="relative" role="search" @submit.prevent="onSubmit">
           <span
@@ -110,8 +115,8 @@ async function onClear(): Promise<void> {
             v-model="query"
             type="search"
             class="pixel-input"
-            placeholder="Nom ou numéro..."
-            aria-label="Rechercher un Pokémon"
+            :placeholder="t('wishlist.searchPlaceholder')"
+            :aria-label="t('wishlist.searchLabel')"
             autocomplete="off"
             spellcheck="false"
           />
@@ -121,7 +126,7 @@ async function onClear(): Promise<void> {
           v-if="remoteStatus === 'loading' || (status === 'pending' && query)"
           class="dialog"
         >
-          Chargement<span class="blink">...</span>
+          {{ t('wishlist.loading') }}<span class="blink">...</span>
         </p>
 
         <ul
@@ -136,7 +141,7 @@ async function onClear(): Promise<void> {
                 class="pixel-btn w-[calc(100%-8px)]"
                 disabled
               >
-                Dans la liste
+                {{ t('wishlist.inList') }}
               </button>
               <button
                 v-else-if="isFull"
@@ -144,7 +149,7 @@ async function onClear(): Promise<void> {
                 class="pixel-btn w-[calc(100%-8px)]"
                 disabled
               >
-                Liste pleine
+                {{ t('wishlist.full') }}
               </button>
               <button
                 v-else
@@ -152,33 +157,35 @@ async function onClear(): Promise<void> {
                 class="pixel-btn w-[calc(100%-8px)]"
                 @click="onAdd(p)"
               >
-                + Ajouter
+                {{ t('wishlist.add') }}
               </button>
             </PokemonCard>
           </li>
         </ul>
 
         <p v-else-if="remoteStatus === 'notfound'" class="dialog">
-          « {{ query }} » est introuvable sur PokéAPI (404).
+          {{ t('wishlist.notFound', { query }) }}
         </p>
 
         <p
           v-else-if="error || remoteStatus === 'error'"
           class="dialog text-red"
         >
-          Impossible de contacter PokéAPI...
+          {{ t('wishlist.pokeApiDown') }}
         </p>
 
         <p v-else-if="query" class="dialog">
-          Aucun Pokémon ne s'appelle « {{ query }} »... Appuie sur Entrée pour
-          demander à PokéAPI.
+          {{ t('wishlist.noMatch', { query }) }}
         </p>
       </section>
 
       <section class="flex flex-col gap-4" aria-labelledby="wishlist-title">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="wishlist-title" class="pixel-label text-xs uppercase">
-            <span><span class="text-red">&gt;</span> Ma wishlist</span>
+            <span
+              ><span class="text-red">&gt;</span>
+              {{ t('wishlist.title') }}</span
+            >
             <span class="pixel-badge"
               >{{ wishlist.length }}/{{ MAX_WISHLIST }}</span
             >
@@ -189,12 +196,12 @@ async function onClear(): Promise<void> {
             class="pixel-btn pixel-btn--ghost"
             @click="onClear"
           >
-            Tout vider
+            {{ t('wishlist.clear') }}
           </button>
         </div>
 
         <p v-if="apiStatus === 'offline'" class="dialog text-red" role="alert">
-          L'API ne répond pas : voici la dernière liste connue.
+          {{ t('wishlist.offline') }}
         </p>
 
         <ul
@@ -210,7 +217,7 @@ async function onClear(): Promise<void> {
           </li>
         </ul>
         <p v-else class="dialog text-center text-muted">
-          Ta wishlist est vide. Ajoute des Pokémon depuis la recherche !
+          {{ t('wishlist.empty') }}
         </p>
       </section>
     </main>

@@ -59,25 +59,34 @@ const PIKACHU = {
   ],
 }
 const PIKACHU_SPECIES = {
-  names: [
-    { name: 'Pikachu', language: { name: 'en' } },
-    { name: 'Pikachu', language: { name: 'fr' } },
+  names: ['en', 'fr', 'es', 'de'].map((lang) => ({
+    name: 'Pikachu',
+    language: { name: lang },
+  })),
+  genera: [
+    { genus: 'Mouse Pokémon', language: { name: 'en' } },
+    { genus: 'Pokémon Souris', language: { name: 'fr' } },
+    { genus: 'Pokémon Ratón', language: { name: 'es' } },
+    { genus: 'Maus', language: { name: 'de' } },
   ],
-  genera: [{ genus: 'Pokémon Souris', language: { name: 'fr' } }],
   flavor_text_entries: [
-    { flavor_text: 'Old text', language: { name: 'en' } },
+    {
+      flavor_text: 'It stores\nelectricity\fin its cheeks.',
+      language: { name: 'en' },
+    },
     {
       flavor_text: 'Il stocke\nl’électricité\fdans ses joues.',
       language: { name: 'fr' },
     },
   ],
 }
+/** La fiche attendue, en anglais (la langue par défaut). */
 const PIKACHU_DETAILS = {
   id: 25,
   name: 'pikachu',
-  frenchName: 'Pikachu',
-  genus: 'Pokémon Souris',
-  description: 'Il stocke l’électricité dans ses joues.',
+  localName: 'Pikachu',
+  genus: 'Mouse Pokémon',
+  description: 'It stores electricity in its cheeks.',
   types: ['electric'],
   height: 0.4,
   weight: 6,
@@ -90,6 +99,10 @@ const PIKACHU_DETAILS = {
     { name: 'speed', value: 90 },
   ],
 }
+const PIKACHU_ROUTES: Record<string, [number, unknown]> = {
+  '/pokemon/pikachu': [200, PIKACHU],
+  '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
+}
 
 const LIST = {
   results: [
@@ -100,11 +113,8 @@ const LIST = {
 }
 
 describe('client PokéAPI (fetch mocké)', () => {
-  it('get : renvoie la fiche du Pokémon quand PokéAPI répond 200', async () => {
-    const fetchMock = mockPokeApi({
-      '/pokemon/pikachu': [200, PIKACHU],
-      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
-    })
+  it('get : renvoie la fiche du Pokémon en anglais par défaut', async () => {
+    const fetchMock = mockPokeApi(PIKACHU_ROUTES)
 
     await expect(createPokeApi(BASE).get('  Pikachu ')).resolves.toEqual(
       PIKACHU_DETAILS,
@@ -113,17 +123,28 @@ describe('client PokéAPI (fetch mocké)', () => {
     expect(fetchMock).toHaveBeenCalledWith(`${BASE}/pokemon-species/pikachu`)
   })
 
-  it('get : garde les fiches en mémoire (pas de 2e appel à PokéAPI)', async () => {
-    const fetchMock = mockPokeApi({
-      '/pokemon/pikachu': [200, PIKACHU],
-      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
+  it('get : catégorie et description dans la langue demandée', async () => {
+    mockPokeApi(PIKACHU_ROUTES)
+
+    await expect(createPokeApi(BASE).get('pikachu', 'fr')).resolves.toEqual({
+      ...PIKACHU_DETAILS,
+      genus: 'Pokémon Souris',
+      description: 'Il stocke l’électricité dans ses joues.',
     })
+  })
+
+  it('get : garde les fiches en mémoire, par langue', async () => {
+    const fetchMock = mockPokeApi(PIKACHU_ROUTES)
     const pokeApi = createPokeApi(BASE)
 
     await pokeApi.get('pikachu')
     await pokeApi.get('PIKACHU')
-
     expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    await expect(pokeApi.get('pikachu', 'de')).resolves.toMatchObject({
+      genus: 'Maus',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(4)
   })
 
   it('get : donne quand même la fiche si l’espèce ne répond pas', async () => {
@@ -134,7 +155,7 @@ describe('client PokéAPI (fetch mocké)', () => {
 
     await expect(createPokeApi(BASE).get('pikachu')).resolves.toMatchObject({
       id: 25,
-      frenchName: null,
+      localName: null,
       genus: null,
       description: null,
       types: ['electric'],
@@ -209,15 +230,22 @@ describe('routes /pokemon (front → API → PokéAPI)', () => {
   })
 
   it('GET /pokemon/:nom renvoie 200 et la fiche du Pokémon', async () => {
-    mockPokeApi({
-      '/pokemon/pikachu': [200, PIKACHU],
-      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
-    })
+    mockPokeApi(PIKACHU_ROUTES)
 
     const res = await app().request('/pokemon/pikachu')
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual(PIKACHU_DETAILS)
+  })
+
+  it('GET /pokemon/:nom donne la fiche dans la langue du front', async () => {
+    mockPokeApi(PIKACHU_ROUTES)
+
+    const res = await app().request('/pokemon/pikachu', {
+      headers: { 'Accept-Language': 'es-ES,es;q=0.9' },
+    })
+
+    expect(await res.json()).toMatchObject({ genus: 'Pokémon Ratón' })
   })
 
   it('GET /pokemon/:nom renvoie 404 si PokéAPI ne le connaît pas', async () => {
@@ -226,7 +254,7 @@ describe('routes /pokemon (front → API → PokéAPI)', () => {
     const res = await app().request('/pokemon/pikachoux')
 
     expect(res.status).toBe(404)
-    expect(await res.json()).toEqual({ error: 'Pokémon introuvable' })
+    expect(await res.json()).toEqual({ error: 'Pokémon not found' })
   })
 
   it('renvoie 502 si PokéAPI est en panne', async () => {

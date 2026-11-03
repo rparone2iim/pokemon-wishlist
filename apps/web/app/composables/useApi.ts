@@ -3,8 +3,11 @@ import { createApi } from '~/utils/api'
 
 let api: Api | undefined
 
-/** Le client de l'API Hono, partagé par toute l'appli. */
+/** Le client de l'API Hono, partagé par toute l'appli (dans la langue choisie). */
 export function useApi(): Api {
-  api ??= createApi(useRuntimeConfig().public.apiBase)
+  if (!api) {
+    const { locale } = useI18n()
+    api = createApi(useRuntimeConfig().public.apiBase, () => locale.value)
+  }
   return api
 }

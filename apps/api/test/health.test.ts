@@ -25,6 +25,6 @@ describe('route inconnue', () => {
     const res = await createApp().request('/nimporte-quoi')
 
     expect(res.status).toBe(404)
-    expect(await res.json()).toEqual({ error: 'Route introuvable' })
+    expect(await res.json()).toEqual({ error: 'Route not found' })
   })
 })

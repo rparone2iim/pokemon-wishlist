@@ -13,11 +13,11 @@ export interface WishlistItem extends Pokemon {
 
 /** Fiche détaillée d'un Pokémon, renvoyée par l'API Hono (GET /pokemon/:nom). */
 export interface PokemonDetails extends Pokemon {
-  /** Nom français ; null s'il est inconnu. */
-  frenchName: string | null
-  /** Catégorie du Pokédex, par exemple « Pokémon Souris ». */
+  /** Nom dans la langue demandée ; null s'il est inconnu. */
+  localName: string | null
+  /** Catégorie du Pokédex, par exemple « Mouse Pokémon ». */
   genus: string | null
-  /** Description du Pokédex en français. */
+  /** Description du Pokédex dans la langue demandée. */
   description: string | null
   /** Types en anglais, comme dans PokéAPI (« electric »…). */
   types: string[]

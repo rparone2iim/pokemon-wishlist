@@ -32,17 +32,29 @@ function pokemon(p) {
   }
 }
 
-/** Réponse façon PokéAPI pour /pokemon-species/{nom}. */
+/** Réponse façon PokéAPI pour /pokemon-species/{nom}, dans les 4 langues. */
 function species(p) {
+  const en = p.name.charAt(0).toUpperCase() + p.name.slice(1)
+  const texts = {
+    en: [en, 'Test Pokémon', `Test entry\nfor ${en}.`],
+    fr: [p.fr, 'Pokémon Test', `Fiche de test\nde ${p.fr}.`],
+    es: [en, 'Pokémon Prueba', `Ficha de prueba\nde ${en}.`],
+    de: [en, 'Test-Pokémon', `Testeintrag\nfür ${en}.`],
+  }
+  const entries = Object.entries(texts)
   return {
-    names: [{ name: p.fr, language: { name: 'fr' } }],
-    genera: [{ genus: 'Pokémon Test', language: { name: 'fr' } }],
-    flavor_text_entries: [
-      {
-        flavor_text: `Fiche de test\nde ${p.fr}.`,
-        language: { name: 'fr' },
-      },
-    ],
+    names: entries.map(([lang, [name]]) => ({
+      name,
+      language: { name: lang },
+    })),
+    genera: entries.map(([lang, [, genus]]) => ({
+      genus,
+      language: { name: lang },
+    })),
+    flavor_text_entries: entries.map(([lang, [, , flavor_text]]) => ({
+      flavor_text,
+      language: { name: lang },
+    })),
   }
 }
 

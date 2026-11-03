@@ -362,3 +362,40 @@ Cas 404 : `http://localhost:3000/pokemon/pikachoux`
 ![Pokémon introuvable](preuves/fiche-404.png)
 
 Tests E2E (`apps/web/e2e/pokemon.spec.ts`, 7 scénarios × 2 navigateurs) : URL directe avec toutes les informations, nom français et deux types, numéro ou majuscules dans l'URL, 404, nom invalide, ouverture depuis une carte de la wishlist, ajout depuis la fiche. La suite complète passe : 50 tests sur 50. Répétée 8 fois, la nouvelle suite donne 112 sur 112.
+
+## Front + Back · i18n · quatre langues
+
+- **Front** : `apps/web/i18n/locales/en.json`, `fr.json`, `es.json`, `de.json` (67 clés chacun). Toute l'interface passe par `t('…')` : pages, cartes, messages, types et statistiques des fiches, format des nombres (`0.4 m` / `0,4 m`). Sélecteur EN · FR · ES · DE en haut à droite, langue gardée dans le navigateur, `<html lang>` à jour.
+- **Back** : `apps/api/src/locales/en.json`, `fr.json`, `es.json`, `de.json`. Toutes les erreurs de Hono sont traduites ; la langue vient de `?lang=` ou de `Accept-Language` (middleware `languageDetector` de Hono).
+- **Anglais par défaut**, même avec un navigateur réglé en français.
+
+Vérification : changer de langue modifie l'UI et un message de l'API. Sur `/pokemon/pikachoux`, le titre et l'aide viennent du front, et « Pokémon not found » vient de l'API (404). En changeant de langue, le front redemande la fiche avec le nouvel `Accept-Language`, et les deux changent.
+
+```text
+$ curl -H 'Accept-Language: en' localhost:3001/pokemon/pikachoux
+{"error":"Pokémon not found"}
+$ curl -H 'Accept-Language: fr' localhost:3001/pokemon/pikachoux
+{"error":"Pokémon introuvable"}
+$ curl -H 'Accept-Language: es' localhost:3001/pokemon/pikachoux
+{"error":"Pokémon no encontrado"}
+$ curl -H 'Accept-Language: de' localhost:3001/pokemon/pikachoux
+{"error":"Pokémon nicht gefunden"}
+```
+
+Anglais (par défaut), puis français :
+
+![404 en anglais](preuves/i18n-404-en.png)
+
+![404 en français](preuves/i18n-404-fr.png)
+
+Fiche en espagnol (nom, catégorie, description et types traduits) et wishlist en allemand :
+
+![Fiche en espagnol](preuves/i18n-fiche-es.png)
+
+![Wishlist en allemand](preuves/i18n-wishlist-de.png)
+
+Tests :
+
+- **API** : `test/i18n.test.ts`, les erreurs dans les 4 langues, `Accept-Language` d'un navigateur, `?lang=`, langue inconnue ramenée à l'anglais, message avec paramètre.
+- **Front** : `test/i18n.test.ts`, traduction, paramètres, langue gardée.
+- **E2E** : `e2e/i18n.spec.ts`, 6 scénarios × 2 navigateurs : anglais par défaut, l'UI dans les 4 langues, le message 404 de l'API qui change avec la langue (et l'`Accept-Language` envoyé), le refus 409 de l'API en allemand, la fiche traduite, la langue gardée après rechargement. La suite complète passe : 62 tests sur 62.

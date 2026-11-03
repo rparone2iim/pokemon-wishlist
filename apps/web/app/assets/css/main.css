@@ -149,6 +149,12 @@ img {
     background: var(--color-paper);
   }
 
+  /* Bouton sélectionné (langue en cours) */
+  .pixel-btn--active {
+    color: var(--color-paper);
+    background: var(--color-ink);
+  }
+
   /* Champ texte */
   .pixel-input {
     width: calc(100% - var(--px) * 2);
