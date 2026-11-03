@@ -32,6 +32,7 @@ npm run dev:api   # API Hono sur http://localhost:3001
 L'appli et l'API parlent **anglais par défaut**, et aussi français, espagnol et allemand.
 
 - **Front** : `apps/web/i18n/locales/{en,fr,es,de}.json`. Le sélecteur EN · FR · ES · DE en haut à droite change toute l'interface ; la langue est gardée dans le navigateur. Les clés sont typées à partir de `en.json` (`app/utils/i18n.ts`).
+- **Vérification** : `npm run i18n:check` compare chaque fichier de langue à `en.json` (clés manquantes ou en trop, traductions vides, paramètres `{…}`), côté front et côté back. La CI le lance à chaque push.
 - **API** : `apps/api/src/locales/{en,fr,es,de}.json` pour les messages d'erreur. La langue vient de `?lang=` ou de l'en-tête `Accept-Language`, que le front envoie à chaque requête. La fiche Pokémon (nom, catégorie, description) arrive aussi dans cette langue.
 
 ## apps/web · le front Nuxt
@@ -92,17 +93,18 @@ Les tests E2E n'utilisent jamais Supabase : en local, ils tournent sur une base 
 
 ## Scripts (à la racine)
 
-| Commande               | Rôle                                                             |
-| ---------------------- | ---------------------------------------------------------------- |
-| `npm run dev`          | Front Nuxt en dev                                                |
-| `npm run dev:api`      | API Hono en dev                                                  |
-| `npm run lint`         | ESLint sur les deux apps (`console.log` et `debugger` interdits) |
-| `npm run typecheck`    | Vérification TypeScript des deux apps                            |
-| `npm test`             | Tests Vitest des deux apps                                       |
-| `npm run test:e2e`     | Tests end-to-end Playwright (démarre front et back)              |
-| `npm run build`        | Build des deux apps                                              |
-| `npm run format`       | Formate tout le dépôt (Prettier)                                 |
-| `npm run format:check` | Vérifie le format                                                |
+| Commande               | Rôle                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`          | Front Nuxt en dev                                                            |
+| `npm run dev:api`      | API Hono en dev                                                              |
+| `npm run lint`         | ESLint sur les deux apps (`console.log` et `debugger` interdits)             |
+| `npm run typecheck`    | Vérification TypeScript des deux apps                                        |
+| `npm test`             | Tests Vitest des deux apps                                                   |
+| `npm run test:e2e`     | Tests end-to-end Playwright (démarre front et back)                          |
+| `npm run build`        | Build des deux apps                                                          |
+| `npm run format`       | Formate tout le dépôt (Prettier)                                             |
+| `npm run format:check` | Vérifie le format                                                            |
+| `npm run i18n:check`   | Vérifie que chaque fichier de langue a les clés de `en.json` (front et back) |
 
 Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, etc.
 
@@ -111,7 +113,7 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 `.github/workflows/ci.yml`, à chaque push et sur chaque PR :
 
 1. `npm ci` à la racine dans chaque job (action commune `.github/actions/setup`)
-2. Prettier sur tout le dépôt
+2. Prettier sur tout le dépôt, et les traductions : `scripts/check-locales.mjs` compare chaque fichier de langue à `en.json` (front et back) ; une clé manquante fait échouer la CI
 3. Lint, typecheck et tests Vitest pour **web** et **api**, en parallèle ; les tests de l'API tournent sur un conteneur PostgreSQL
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
 5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
