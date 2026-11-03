@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const { locale } = useI18n()
+const { locale, syncFromCookie } = useI18n()
+// Après l'hydratation (pages prégénérées en anglais) : la langue du cookie
+onMounted(syncFromCookie)
 const { version } = useRuntimeConfig().public
 
 // <html lang> suit la langue choisie ; la version déployée est dans une balise meta

@@ -144,6 +144,8 @@ jobs:
       API_URL: http://localhost:4001
       POKEAPI_URL: http://localhost:4002/api/v2
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pokewishlist
+      # Fiches prégénérées au build (et testées) : les 3 premières de la fausse PokéAPI
+      PRERENDER_POKEMON: 3
     services:
       postgres:
         image: postgres:17
@@ -162,30 +164,37 @@ jobs:
       - name: Navigateurs Playwright
         run: npx playwright install --with-deps chromium webkit
 
-      - name: Build de Hono et de Nuxt
-        run: |
-          npm run build -w apps/api
-          npm run build -w apps/web
+      - name: Build de Hono
+        run: npm run build -w apps/api
 
       - name: Schéma de la base (db/init.sql)
         run: npm run db:init -w apps/api
 
-      - name: Démarrer Hono et Nuxt
+      - name: Démarrer la fausse PokéAPI et Hono
         run: |
           # Fausse PokéAPI : les tests ne dépendent pas d'Internet
           PORT=4002 node apps/web/e2e/mock-pokeapi.mjs > pokeapi.log 2>&1 &
           # API Hono, branchée sur PostgreSQL (DATABASE_URL)
           PORT=4001 CORS_ORIGIN=$WEB_URL POKEAPI_URL=$POKEAPI_URL \
             node apps/api/dist/index.js > hono.log 2>&1 &
-          # Front Nuxt, branché sur l'API
-          PORT=4000 NUXT_PUBLIC_API_BASE=$API_URL \
-            node apps/web/.output/server/index.mjs > nuxt.log 2>&1 &
-
-          for url in http://localhost:4002/health $API_URL/health $WEB_URL; do
+          for url in http://localhost:4002/health $API_URL/health; do
             for i in $(seq 1 60); do curl -sf "$url" > /dev/null && break; sleep 1; done
             curl -sf "$url" > /dev/null && echo "✔ $url répond"
           done
-          curl -s $API_URL/health
+
+      # Build après Hono : les 3 premières fiches sont prégénérées avec la vraie API
+      - name: Build de Nuxt (avec fiches prégénérées)
+        run: npm run build -w apps/web
+        env:
+          PRERENDER_POKEAPI_URL: ${{ env.POKEAPI_URL }}
+          NUXT_PUBLIC_API_BASE: ${{ env.API_URL }}
+
+      - name: Démarrer Nuxt
+        run: |
+          PORT=4000 NUXT_PUBLIC_API_BASE=$API_URL \
+            node apps/web/.output/server/index.mjs > nuxt.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf "$WEB_URL" > /dev/null && break; sleep 1; done
+          curl -sf "$WEB_URL" > /dev/null && echo "✔ $WEB_URL répond"
 
       - name: Playwright
         run: npm run test:e2e
@@ -240,6 +249,8 @@ jobs:
         env:
           # Nitro produit directement le format attendu par Vercel (.vercel/output)
           NITRO_PRESET: vercel
+          # Les 151 premières fiches Pokémon sont prégénérées en HTML au build
+          PRERENDER_POKEMON: 151
 
       - name: Déploiement en production
         run: npx vercel@65.10.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"

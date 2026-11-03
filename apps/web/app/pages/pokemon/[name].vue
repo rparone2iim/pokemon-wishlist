@@ -25,6 +25,11 @@ const {
   () => api.getPokemon(name.value),
 )
 
+// Prégénération : si l'API n'a pas répondu, on fait échouer le build plutôt
+// que de publier une fiche « API injoignable » figée.
+if (import.meta.prerender && error.value)
+  throw createError({ statusCode: 502, statusMessage: 'API injoignable' })
+
 // SSR : un Pokémon introuvable renvoie un vrai code HTTP 404 (ou 400 si le nom est invalide)
 if (import.meta.server && lookup.value && !lookup.value.ok)
   setResponseStatus(useRequestEvent()!, lookup.value.status)

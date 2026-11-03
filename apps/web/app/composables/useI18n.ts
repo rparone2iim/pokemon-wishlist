@@ -19,8 +19,17 @@ export function useI18n() {
     cookie.value = code
   }
 
+  /**
+   * Une page prégénérée au build est rendue en anglais : une fois hydratée,
+   * on repasse dans la langue du cookie.
+   */
+  function syncFromCookie(): void {
+    const saved = parseLocale(cookie.value)
+    if (saved !== locale.value) locale.value = saved
+  }
+
   const t = (key: MessageKey, params?: Params) =>
     translate(locale.value, key, params)
 
-  return { locale, locales: LOCALES, setLocale, t }
+  return { locale, locales: LOCALES, setLocale, syncFromCookie, t }
 }
