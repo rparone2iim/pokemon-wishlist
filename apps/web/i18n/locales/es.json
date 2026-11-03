@@ -21,6 +21,7 @@
     "pokeApiDown": "No se puede contactar con PokéAPI...",
     "noMatch": "Ningún Pokémon se llama «{query}»... Pulsa Intro para preguntar a PokéAPI.",
     "title": "Mi lista de deseos",
+    "clear": "Vaciar todo",
     "offline": "La API no responde: esta es la última lista conocida.",
     "empty": "Tu lista de deseos está vacía. ¡Añade Pokémon desde la búsqueda!"
   },
