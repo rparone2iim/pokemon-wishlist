@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { CACHE_KEY, POKEDEX, expect, test } from './fixtures'
+import { CACHE_KEY, POKEDEX, apiResponse, expect, test } from './fixtures'
 
 const search = (page: Page) =>
   page.getByRole('searchbox', { name: 'Rechercher un Pokémon' })
@@ -23,6 +23,7 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
     api,
   }) => {
     await page.goto('/wishlist')
+    const saved = apiResponse(page, 'POST', '/wishlist')
     await addFromSearch(page, 'pika')
 
     await expect(cards(page)).toHaveCount(1)
@@ -35,6 +36,7 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
     ).toBeDisabled()
 
     // L'API a bien enregistré l'ajout
+    expect((await saved).status()).toBe(201)
     const list = await (await request.get(`${api}/wishlist`)).json()
     expect(list).toMatchObject([{ id: 25, name: 'pikachu' }])
   })
@@ -43,8 +45,11 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
     page,
   }) => {
     await page.goto('/wishlist')
+    const saved = apiResponse(page, 'POST', '/wishlist')
     await addFromSearch(page, 'pika')
     await expect(cards(page)).toHaveCount(1)
+    // On ne recharge qu'une fois l'ajout enregistré par l'API
+    expect((await saved).status()).toBe(201)
 
     await page.reload()
 
@@ -63,11 +68,13 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
     const card = cards(page).first()
     await card.getByRole('button', { name: 'Renommer' }).click()
     await card.getByRole('textbox', { name: /Surnom/ }).fill('Sparky')
+    const saved = apiResponse(page, 'PATCH', '/wishlist/25')
     await card.getByRole('textbox', { name: /Surnom/ }).press('Enter')
 
     await expect(card.getByRole('heading')).toHaveText(/sparky/i)
     await expect(card).toContainText(/pikachu/i)
 
+    expect((await saved).status()).toBe(200)
     const [item] = await (await request.get(`${api}/wishlist`)).json()
     expect(item).toMatchObject({ id: 25, nickname: 'Sparky' })
 
@@ -79,6 +86,7 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
     await request.post(`${api}/wishlist`, { data: { id: 25, name: 'pikachu' } })
     await page.goto('/wishlist')
 
+    const saved = apiResponse(page, 'DELETE', '/wishlist/25')
     await cards(page)
       .first()
       .getByRole('button', { name: /Retirer/ })
@@ -86,6 +94,7 @@ test.describe('wishlist branchée sur l’API Hono (qui interroge PokéAPI)', ()
 
     await expect(cards(page)).toHaveCount(0)
     await expect(page.getByText('Ta wishlist est vide')).toBeVisible()
+    expect((await saved).status()).toBe(200)
     expect(await (await request.get(`${api}/wishlist`)).json()).toEqual([])
   })
 
