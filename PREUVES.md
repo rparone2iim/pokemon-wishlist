@@ -457,3 +457,48 @@ Le vrai front, branché sur l'API AWS (`NUXT_PUBLIC_API_BASE`), dans Chromium et
 ![Front branché sur l'API AWS](preuves/aws-front.png)
 
 Tests : `apps/api/test/lambda.test.ts` envoie de vrais événements API Gateway (format 2.0) au gestionnaire Lambda : `/health`, `/wishlist` sur la base de test, CORS et erreurs traduites.
+
+## Vercel · SSR · Nuxt rendu côté serveur
+
+Le front est publié sur Vercel en SSR, branché sur l'API AWS : https://pokewishlist-8bit.vercel.app
+
+- `ssr: true` : la langue passe dans un cookie (le serveur rend la bonne langue), aucun état n'est partagé entre visiteurs côté serveur, la wishlist se charge après l'hydratation, et un Pokémon inconnu renvoie un vrai code 404.
+- `NUXT_PUBLIC_API_BASE` pointe vers l'API AWS, et la Lambda autorise le domaine Vercel dans son CORS.
+- Garde-fou E2E : tout test échoue si Vue signale une différence d'hydratation entre le HTML du serveur et le navigateur.
+
+Vérification : une fiche Pokémon renvoie du HTML rendu côté serveur (une simple requête HTTP, sans navigateur ni JavaScript) :
+
+```text
+$ curl -i https://pokewishlist-8bit.vercel.app/pokemon/pikachu
+HTTP/2 200
+content-type: text/html;charset=utf-8
+server: Vercel
+…
+<html  lang="en">
+<title>Pikachu · PokéWishlist</title>
+<meta name="app-version" content="c5a60d9">
+<h1 id="fiche-25" …>Pikachu</h1>
+<p class="text-[9px]">Mouse Pokémon</p>
+<p class="dialog">Possesses cheek sacs in which it stores electricity. This clever fores
+aria-label="HP" aria-valuenow="35"
+
+$ curl -s -o /dev/null -w '%{http_code}' https://pokewishlist-8bit.vercel.app/pokemon/pikachoux
+404
+```
+
+Le site en ligne dans le navigateur (Chromium et WebKit) : fiche en anglais puis en français, ajout et retrait d'un Pokémon via l'API AWS, aucune erreur d'hydratation ni en console.
+
+![Fiche sur Vercel](preuves/vercel-fiche.png)
+
+![Wishlist sur Vercel](preuves/vercel-wishlist.png)
+
+Tests E2E SSR (`apps/web/e2e/pokemon.spec.ts`) : la fiche arrive en HTML serveur, dans la langue du cookie, et un Pokémon inconnu renvoie 404.
+
+## CD · SSR · le front déployé par GitHub Actions
+
+Le job **web · Déploiement Vercel (production)** de `ci.yml` ne tourne que pour un push sur `main` (un merge), une fois toute la CI verte : format, traductions, lint, types, tests, builds et E2E. Il construit le front pour Vercel, le déploie en production, puis vérifie que le site en ligne sert bien le commit, avec une fiche rendue par le serveur.
+
+Premier déploiement automatique, au merge de la PR #20 (commit `c5a60d9`) :
+https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41655499412
+
+![CD Vercel dans la CI](preuves/cd-vercel-run.png)
