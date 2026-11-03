@@ -339,3 +339,6 @@ Error: Tests refusés sur aws-1-eu-west-3.pooler.supabase.com/postgres : il faut
 ```
 
 Dans la CI, le job **api · Tests (Vitest + PostgreSQL)** lance ces tests sur son propre conteneur PostgreSQL.
+Pipeline : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41623145266
+
+![Tests d'intégration dans la CI](preuves/bdd-integration-ci.png)
