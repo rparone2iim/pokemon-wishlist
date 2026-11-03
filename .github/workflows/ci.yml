@@ -1,0 +1,21 @@
+name: CI
+
+# La pipeline tourne à chaque push, sur toutes les branches, et sur les PR
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
