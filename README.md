@@ -35,6 +35,12 @@ npm run dev:api   # API Hono sur http://localhost:3001
 - L'écran se met à jour tout de suite, puis revient en arrière si l'API refuse
 - Le `localStorage` sert de cache : la dernière liste connue s'affiche tout de suite, même si l'API ne répond pas
 - Tests Vitest : règles de la wishlist (`test/wishlist.test.ts`) et cache `localStorage` (`test/storage.test.ts`)
+- **Tests end-to-end Playwright** (`e2e/`) sur Chromium et WebKit. Ils lancent une fausse PokéAPI (`e2e/mock-pokeapi.mjs`), la vraie API Hono et le vrai front, puis cliquent dans le navigateur :
+  - parcours réel complet (`e2e/parcours.spec.ts`) : ajout, doublon (y compris refusé par l'API en `409`), limite de 6, suppression
+  - accueil (jardin, Pokémon qui bougent, bouton Commencer)
+  - recherche via l'API (aucun appel direct à PokéAPI), Pokémon introuvable (404)
+  - ajout, rechargement, renommage, retrait, limite de 6 Pokémon
+  - API en panne, cache `localStorage` : sauvegarde, lecture, stockage vide, JSON corrompu
 
 ## apps/api · l'API Hono
 
@@ -71,6 +77,7 @@ Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }` · de `PATCH` : `{
 | `npm run lint`         | ESLint sur les deux apps (`console.log` et `debugger` interdits) |
 | `npm run typecheck`    | Vérification TypeScript des deux apps                            |
 | `npm test`             | Tests Vitest des deux apps                                       |
+| `npm run test:e2e`     | Tests end-to-end Playwright (démarre front et back)              |
 | `npm run build`        | Build des deux apps                                              |
 | `npm run format`       | Formate tout le dépôt (Prettier)                                 |
 | `npm run format:check` | Vérifie le format                                                |

@@ -177,3 +177,20 @@ Vérification (Chromium et WebKit) : wishlist de l'API vide, cache local vidé, 
 ![Pikachu ajouté depuis Nuxt](preuves/g1-ajout-depuis-nuxt.png)
 
 ![GET /wishlist sur l'API](preuves/g1-get-wishlist-api.png)
+
+## Global · E2E · un parcours réel avec Playwright
+
+`npm run test:e2e` démarre tout seul les serveurs (`apps/web/playwright.config.ts`) : une fausse PokéAPI, **l'API Hono (back)** et **le front Nuxt**, puis clique dans de vrais navigateurs (Chromium et WebKit).
+
+Le parcours réel (`apps/web/e2e/parcours.spec.ts`), entièrement fait dans l'interface, vérifie aussi l'API à chaque étape :
+
+1. **Ajout** : Pikachu est ajouté depuis la recherche et apparaît dans l'API.
+2. **Doublon** : Pikachu ne peut pas être ajouté une 2e fois. Et si un autre client l'ajoute entre-temps, l'API répond `409` et le front l'affiche une seule fois.
+3. **Limite de 6** : après 6 Pokémon, le 7e est refusé (« Liste pleine »), l'API en a toujours 6.
+4. **Suppression** : Pikachu est retiré, une place se libère et le 7e peut être ajouté.
+
+Un test vérifie aussi que le cache `localStorage` continue d'être sauvegardé quand on arrive sur la wishlist depuis l'accueil. Sans le correctif de `useWishlist`, ce test échoue dans les deux navigateurs.
+
+Résultat : 36 tests sur 36 (18 scénarios × 2 navigateurs).
+
+![Rapport Playwright](preuves/g2-e2e-playwright.png)
