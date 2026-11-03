@@ -28,6 +28,7 @@ export function wishlistRoutes(store: WishlistStore) {
         400,
       )
 
+    console.log('POST /wishlist', pokemon)
     const result = store.add(pokemon)
     if (!result.ok)
       return c.json<ApiError>(
