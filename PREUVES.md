@@ -100,3 +100,60 @@ PR : https://github.com/rparone2iim/pokemon-wishlist/pull/6
 3. Sur la PR, le premier commit est rouge (✗) et le second vert (✓).
 
    ![PR rouge puis verte](preuves/11-pr.png)
+
+## Back · Setup · API Hono sans base de données
+
+Monorepo npm workspaces : le front Nuxt passe dans `apps/web`, l'API Hono + TypeScript est dans `apps/api`. Dans la CI, le job **api · Build** compile l'API, la démarre et vérifie que `GET /health` renvoie 200.
+Pipeline : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41606840672
+
+```text
+$ curl -i http://localhost:3001/health
+HTTP/1.1 200 OK
+{"status":"ok","service":"pokewishlist-api"}
+```
+
+![Push visible dans Actions, api · Build vert](preuves/b1-health-ci.png)
+
+## Back · Routes · GET, POST et DELETE /wishlist
+
+La wishlist est un tableau en mémoire (`apps/api/src/store.ts`). Les routes sont testées avec `app.request()`, sans démarrer de serveur (`apps/api/test/wishlist.test.ts`) :
+
+```text
+ ✓ test/health.test.ts > GET /health > renvoie 200 avec le statut ok
+ ✓ test/health.test.ts > route inconnue > renvoie 404 en JSON
+ ✓ test/wishlist.test.ts > GET /wishlist > renvoie 200 et une liste vide au départ
+ ✓ test/wishlist.test.ts > GET /wishlist > renvoie 200 et les Pokémon ajoutés
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 201 et le Pokémon ajouté
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 409 pour un doublon
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 409 au-delà de 6 Pokémon
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (JSON invalide)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (nom manquant)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (id pas un nombre)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (id négatif)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (nom vide)
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 200 et retire le Pokémon
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 404 si le Pokémon n’est pas dans la wishlist
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 400 si l’identifiant est invalide
+ ✓ test/wishlist.test.ts > mémoire > chaque app a sa propre wishlist
+      Tests  16 passed (16)
+```
+
+## Back · CI · un `console.log` poussé dans l'API, rouge puis vert
+
+PR : https://github.com/rparone2iim/pokemon-wishlist/pull/7
+
+L'API a ESLint, Prettier, Vitest et ses scripts npm (`lint`, `format:check`, `typecheck`, `test`, `build`), lancés par `ci.yml`.
+
+1. Un `console.log` est poussé dans l'API : **api · Lint (ESLint)** échoue (`no-console`) et les builds ne sont pas lancés.
+   Pipeline rouge : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41607395049
+
+   ![Back CI rouge](preuves/b3-ci-rouge.png)
+
+2. Le `console.log` est retiré : les 9 contrôles passent au vert.
+   Pipeline verte : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41607584594
+
+   ![Back CI verte](preuves/b3-ci-verte.png)
+
+3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
+
+   ![Back PR rouge puis verte](preuves/b3-pr.png)
