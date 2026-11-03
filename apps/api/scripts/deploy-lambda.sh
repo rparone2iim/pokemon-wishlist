@@ -75,6 +75,10 @@ if [ "$API_ID" = "None" ] || [ -z "$API_ID" ]; then
 fi
 URL=$(aws apigatewayv2 get-api --api-id "$API_ID" --query ApiEndpoint --output text)
 
-echo "→ Vérification"
-curl -sf "$URL/health" && echo
+echo "→ Vérification (une nouvelle API met quelques secondes à répondre)"
+for _ in $(seq 1 30); do
+  if HEALTH=$(curl -sf "$URL/health"); then break; fi
+  sleep 2
+done
+echo "  GET /health : ${HEALTH:?l'API ne répond pas}"
 echo "API déployée : $URL"
