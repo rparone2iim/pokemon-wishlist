@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import pg from 'pg'
+import { runMigrations } from './migrate.js'
 
 /**
  * Certificat racine de Supabase : la connexion à Supabase est chiffrée et
@@ -39,8 +40,12 @@ export function createPool(
   return pool
 }
 
-/** Applique db/init.sql (le schéma) sur la base du pool. */
-export async function applySchema(pool: pg.Pool): Promise<void> {
+/**
+ * Le schéma complet : db/init.sql (le schéma de base, relançable), puis les
+ * migrations pas encore appliquées (db/migrations). Renvoie celles appliquées.
+ */
+export async function applySchema(pool: pg.Pool): Promise<string[]> {
   const sql = await readFile(new URL('../db/init.sql', import.meta.url), 'utf8')
   await pool.query(sql)
+  return runMigrations(pool)
 }

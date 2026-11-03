@@ -29,5 +29,9 @@ export interface WishlistStore {
   add: (pokemon: Pokemon) => Promise<AddResult>
   remove: (id: number) => Promise<WishlistItem | null>
   rename: (id: number, nickname: string) => Promise<WishlistItem | null>
+  /** +1 like ; `null` si le Pokémon n'est pas dans la wishlist. */
+  like: (id: number) => Promise<WishlistItem | null>
+  /** −1 like (jamais sous 0) ; `null` si le Pokémon n'est pas dans la wishlist. */
+  unlike: (id: number) => Promise<WishlistItem | null>
   clear: () => Promise<void>
 }

@@ -8,7 +8,10 @@ export type WishlistStorage = Pick<Storage, 'getItem' | 'setItem'>
 /** Garde uniquement les entrées valides d'une wishlist venue du stockage. */
 function toWishlistItem(value: unknown): WishlistItem | null {
   if (typeof value !== 'object' || value === null) return null
-  const { id, name, addedAt, nickname } = value as Record<string, unknown>
+  const { id, name, addedAt, nickname, likes } = value as Record<
+    string,
+    unknown
+  >
   if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) return null
   if (typeof name !== 'string' || !name) return null
   return {
@@ -16,6 +19,7 @@ function toWishlistItem(value: unknown): WishlistItem | null {
     name,
     addedAt: typeof addedAt === 'string' ? addedAt : '',
     ...(typeof nickname === 'string' && nickname ? { nickname } : {}),
+    ...(typeof likes === 'number' && likes > 0 ? { likes } : {}),
   }
 }
 

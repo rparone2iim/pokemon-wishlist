@@ -64,6 +64,7 @@ describe('POST /wishlist', () => {
       id: 25,
       name: 'pikachu',
       addedAt: expect.stringMatching(ISO_DATE),
+      likes: 0,
     })
     // La ligne est bien dans la table
     expect(await rows()).toEqual([{ pokemon_id: 25, name: 'pikachu' }])
@@ -217,6 +218,48 @@ describe('PATCH /wishlist/:id', () => {
 
     expect((await patch(25, { surnom: 'Sparky' })).status).toBe(400)
     expect((await patch('abc', { nickname: 'Sparky' })).status).toBe(400)
+  })
+})
+
+describe('likes', () => {
+  const like = (id: number | string, method = 'POST') =>
+    app.request(`/wishlist/${id}/like`, { method })
+
+  it('POST /wishlist/:id/like ajoute un like, enregistré en base', async () => {
+    await post({ id: 25, name: 'pikachu' })
+
+    await like(25)
+    const res = await like(25)
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ id: 25, likes: 2 })
+    const { rows: saved } = await pool.query(
+      'select likes from wishlist where pokemon_id = 25',
+    )
+    expect(saved).toEqual([{ likes: 2 }])
+  })
+
+  it('DELETE /wishlist/:id/like retire un like, sans descendre sous 0', async () => {
+    await post({ id: 25, name: 'pikachu' })
+    await like(25)
+
+    expect(await (await like(25, 'DELETE')).json()).toMatchObject({ likes: 0 })
+    expect(await (await like(25, 'DELETE')).json()).toMatchObject({ likes: 0 })
+  })
+
+  it('renvoie 404 si le Pokémon n’est pas dans la wishlist, 400 si l’id est invalide', async () => {
+    expect((await like(25)).status).toBe(404)
+    expect((await like('abc')).status).toBe(400)
+  })
+
+  it('GET /wishlist renvoie les likes', async () => {
+    await post({ id: 25, name: 'pikachu' })
+    await like(25)
+
+    const list = (await (
+      await app.request('/wishlist')
+    ).json()) as WishlistItem[]
+    expect(list).toMatchObject([{ id: 25, likes: 1 }])
   })
 })
 

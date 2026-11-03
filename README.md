@@ -69,6 +69,9 @@ L'appli et l'API parlent **anglais par défaut**, et aussi français, espagnol e
 | `DELETE /wishlist/:id`  | `200` le Pokémon retiré · `404` absent · `400` identifiant invalide                                                               |
 | `DELETE /wishlist`      | `204` vide la wishlist                                                                                                            |
 
+| `POST /wishlist/:id/like` | `200` un like de plus · `404` absent · `400` identifiant invalide |
+| `DELETE /wishlist/:id/like` | `200` un like de moins (jamais sous 0) · `404` absent |
+
 Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }` · de `PATCH` : `{ "nickname": "Sparky" }`
 
 - CORS : le front peut appeler l'API (origines dans `CORS_ORIGIN`, `http://localhost:3000` par défaut)
@@ -122,6 +125,14 @@ L'API Hono tourne aussi sur **AWS Lambda** (Node 22, arm64, Paris), derrière un
 - `npm run deploy:lambda -w apps/api` : crée ou met à jour le rôle IAM, la fonction Lambda et l'API Gateway (AWS CLI, connecté avec `aws login`). Le script peut être relancé.
 - Variables de la Lambda : `DATABASE_URL` (le pooler Supabase en mode transaction, port 6543, conseillé pour Lambda ; lu dans `LAMBDA_DATABASE_URL` de `apps/api/.env`) et `CORS_ORIGIN` (le front autorisé). Le CORS est géré par Hono.
 - Pour brancher le front sur l'API AWS : `NUXT_PUBLIC_API_BASE=https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com`.
+
+## Migrations SQL
+
+`apps/api/db/init.sql` est le schéma de base ; les évolutions passent par des fichiers numérotés dans `apps/api/db/migrations/` (`001_likes.sql`…). Le runner maison (`apps/api/src/migrate.ts`) note chaque migration appliquée dans la table `schema_migrations` (version, nom, empreinte SHA-256, date) et ne la rejoue jamais. Chaque migration tourne dans sa propre transaction, un verrou empêche deux lancements simultanés, et une migration modifiée après coup est refusée.
+
+```bash
+npm run db:migrate -w apps/api   # init.sql puis les migrations pas encore appliquées
+```
 
 ## Scripts (à la racine)
 

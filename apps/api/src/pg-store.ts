@@ -9,9 +9,10 @@ interface WishlistRow {
   name: string
   nickname: string | null
   added_at: Date
+  likes: number
 }
 
-const COLUMNS = 'pokemon_id, name, nickname, added_at'
+const COLUMNS = 'pokemon_id, name, nickname, added_at, likes'
 
 function toItem(row: WishlistRow): WishlistItem {
   return {
@@ -19,6 +20,7 @@ function toItem(row: WishlistRow): WishlistItem {
     name: row.name,
     addedAt: row.added_at.toISOString(),
     ...(row.nickname ? { nickname: row.nickname } : {}),
+    likes: row.likes,
   }
 }
 
@@ -79,6 +81,24 @@ export function createPgWishlistStore(pool: pg.Pool): WishlistStore {
         `update wishlist set nickname = $2 where pokemon_id = $1
          returning ${COLUMNS}`,
         [id, normalizeNickname(nickname, current.name) ?? null],
+      )
+      return rows[0] ? toItem(rows[0]) : null
+    },
+
+    async like(id) {
+      const { rows } = await pool.query<WishlistRow>(
+        `update wishlist set likes = likes + 1 where pokemon_id = $1
+         returning ${COLUMNS}`,
+        [id],
+      )
+      return rows[0] ? toItem(rows[0]) : null
+    },
+
+    async unlike(id) {
+      const { rows } = await pool.query<WishlistRow>(
+        `update wishlist set likes = greatest(likes - 1, 0) where pokemon_id = $1
+         returning ${COLUMNS}`,
+        [id],
       )
       return rows[0] ? toItem(rows[0]) : null
     },

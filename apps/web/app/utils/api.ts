@@ -33,6 +33,8 @@ export interface Api {
   remove: (id: number) => Promise<boolean>
   /** `null` si le Pokémon n'est pas dans la wishlist (404). */
   rename: (id: number, nickname: string) => Promise<WishlistItem | null>
+  /** POST /wishlist/:id/like : `null` si le Pokémon n'est pas dans la wishlist (404). */
+  like: (id: number) => Promise<WishlistItem | null>
   clear: () => Promise<void>
 }
 
@@ -129,6 +131,15 @@ export function createApi(
     async rename(id, nickname) {
       const res = await expect(
         await sendJson(`/wishlist/${id}`, 'PATCH', { nickname }),
+        200,
+        404,
+      )
+      return res.status === 200 ? ((await res.json()) as WishlistItem) : null
+    },
+
+    async like(id) {
+      const res = await expect(
+        await request(`/wishlist/${id}/like`, { method: 'POST' }),
         200,
         404,
       )

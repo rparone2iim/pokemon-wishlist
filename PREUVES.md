@@ -606,3 +606,48 @@ après le merge : <meta name="app-version" content="2e38fc7">
 https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41665487286
 
 ![CD statique au merge](preuves/cd-ssg-maj-run.png)
+
+## SQL · Migrations · des likes avec des .sql
+
+- **Table `schema_migrations`** : version, nom, empreinte SHA-256 et date de chaque migration appliquée.
+- **Runner SQL maison** (`apps/api/src/migrate.ts`, `npm run db:migrate`) : lit `db/migrations/001_….sql` dans l'ordre et n'applique que les fichiers absents de `schema_migrations`. Chacun tourne dans sa propre transaction, avec un verrou contre deux lancements simultanés. Une migration modifiée après coup est refusée.
+- **`001_likes.sql`** : ajoute la colonne `likes` (0 par défaut, jamais négative) à la wishlist. L'API a les routes `POST` et `DELETE /wishlist/:id/like`, et chaque carte de la wishlist a un bouton ♥.
+
+Vérification : la migration s'exécute une fois et préserve les données. Sur la vraie base **Supabase** :
+
+```text
+# Avant : la wishlist sur Supabase
+ pokemon_id |    name    | nickname |           added_at
+------------+------------+----------+-------------------------------
+          5 | charmeleon |          | 2026-11-03 11:23:25.518115+00
+(1 ligne)
+
+# 1er lancement
+$ npm run db:migrate -w apps/api
+Migrations appliquées sur aws-1-eu-west-3.pooler.supabase.com:5432 : 001_likes.sql
+
+# 2e lancement
+$ npm run db:migrate -w apps/api
+Schéma à jour sur aws-1-eu-west-3.pooler.supabase.com:5432 : aucune migration à appliquer
+
+# Après : mêmes lignes, avec la colonne likes
+ pokemon_id |    name    | nickname |           added_at            | likes
+------------+------------+----------+-------------------------------+-------
+          5 | charmeleon |          | 2026-11-03 11:23:25.518115+00 |     0
+(1 ligne)
+
+ version |     name      |          applied_at
+---------+---------------+-------------------------------
+ 001     | 001_likes.sql | 2026-11-03 15:48:08.540532+00
+(1 ligne)
+```
+
+Tests du runner (`apps/api/test/migrate.test.ts`), sur une base PostgreSQL neuve : l'ancien schéma, des données, puis les migrations :
+
+```text
+ ✓ test/migrate.test.ts > runner de migrations SQL > lit les fichiers db/migrations dans l’ordre
+ ✓ test/migrate.test.ts > runner de migrations SQL > applique 001_likes.sql une fois et garde les données
+ ✓ test/migrate.test.ts > runner de migrations SQL > ne rejoue jamais une migration déjà appliquée
+ ✓ test/migrate.test.ts > runner de migrations SQL > refuse une migration modifiée après avoir été appliquée
+      Tests  4 passed (4)
+```

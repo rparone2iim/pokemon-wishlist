@@ -3,7 +3,11 @@ import type { WishlistItem } from '~/types/pokemon'
 import { MAX_NICKNAME, nicknameOf } from '~/utils/wishlist'
 
 const props = defineProps<{ item: WishlistItem }>()
-const emit = defineEmits<{ rename: [nickname: string]; remove: [] }>()
+const emit = defineEmits<{
+  rename: [nickname: string]
+  remove: []
+  like: []
+}>()
 const { t } = useI18n()
 
 const editing = ref(false)
@@ -68,6 +72,16 @@ function cancel(): void {
       @click="editing ? save() : startEdit()"
     >
       {{ editing ? t('card.ok') : t('card.rename') }}
+    </button>
+    <button
+      type="button"
+      class="pixel-btn pixel-btn--ghost w-[calc(100%-8px)]"
+      :aria-label="
+        t('card.like', { name: nicknameOf(item), count: item.likes ?? 0 })
+      "
+      @click="emit('like')"
+    >
+      <span class="text-red" aria-hidden="true">♥</span> {{ item.likes ?? 0 }}
     </button>
     <button
       type="button"
