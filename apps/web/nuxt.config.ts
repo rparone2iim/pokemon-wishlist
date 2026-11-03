@@ -26,6 +26,11 @@ export default defineNuxtConfig({
     },
   },
   compatibilityDate: '2025-07-15',
+  experimental: {
+    // Pas de manifeste d'app (builds/meta) : les données viennent toujours de
+    // l'API, et WebKit signalait une erreur quand une navigation coupait son chargement
+    appManifest: false,
+  },
   nitro: {
     prerender: {
       // Une fiche qui n'a pas pu être générée fait échouer le build (pas de page cassée en ligne)

@@ -94,6 +94,7 @@ Les tests E2E n'utilisent jamais Supabase : en local, ils tournent sur une base 
 ## En ligne
 
 - **Front (Nuxt SSR, Vercel)** : https://pokewishlist-8bit.vercel.app
+- **Front statique (SSG, S3 + CloudFront)** : https://d1kkqanpvbsbt6.cloudfront.net
 - **API (Hono, AWS Lambda)** : https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com
 
 ## Déploiement Vercel (front, SSR)
@@ -103,6 +104,14 @@ Les tests E2E n'utilisent jamais Supabase : en local, ils tournent sur une base 
 - Variable Vercel : `NUXT_PUBLIC_API_BASE` = l'URL de l'API AWS. La Lambda autorise le domaine Vercel (`LAMBDA_CORS_ORIGIN`).
 - **CD** : le job **web · Déploiement Vercel (production)** de `ci.yml` ne tourne que sur `main`, une fois toute la CI verte. Il fait `vercel pull`, `vercel build` (preset Nitro `vercel`), `vercel deploy --prebuilt --prod`, puis vérifie que le site sert bien ce commit. La version déployée (commit) s'affiche en bas à droite et dans `<meta name="app-version">`.
 - Secrets GitHub : `VERCEL_TOKEN` (secret) ; `VERCEL_ORG_ID` et `VERCEL_PROJECT_ID` (variables).
+
+## Fiches prégénérées au build
+
+`PRERENDER_POKEMON=151` : au build, les noms des 151 premiers Pokémon sont lus dans PokéAPI et leurs routes `/pokemon/<nom>` sont ajoutées à `nitro.prerender.routes` (`apps/web/prerender.ts`). Les autres fiches restent rendues à la demande. La limite garde le build rapide ; la prégénération va 3 pages à la fois, car l'API Lambda n'accepte que 10 exécutions simultanées.
+
+## Front statique sur S3 + CloudFront (SSG)
+
+`npm run deploy:ssg -w apps/web` (`apps/web/scripts/deploy-ssg.sh`, AWS CLI) : `nuxt generate` (151 fiches prégénérées), puis bucket S3 **privé** lisible seulement par CloudFront (OAC), fonction CloudFront qui sert `/pokemon/pikachu` depuis `pokemon/pikachu/index.html`, `200.html` pour les fiches non prégénérées, envoi des fichiers et invalidation du cache. Le site statique utilise la même API AWS que le front Vercel.
 
 ## Déploiement AWS (API)
 
