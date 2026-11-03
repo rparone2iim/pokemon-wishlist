@@ -22,6 +22,22 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run format:check
 
+  # Traductions : chaque fichier de langue doit avoir les clés de en.json,
+  # côté front (apps/web/i18n/locales) et côté back (apps/api/src/locales)
+  i18n:
+    name: Traductions (clés des locales)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # Le script n'utilise que Node : pas besoin de npm ci
+      - name: Tests du script
+        run: npm run test:scripts
+      - name: Clés des locales comparées à en.json
+        run: npm run i18n:check
+
   # Contrôles de chaque app du monorepo (apps/web et apps/api)
   checks:
     name: ${{ matrix.app }} · ${{ matrix.check.name }}
@@ -69,7 +85,7 @@ jobs:
   # Les builds ne se lancent que si tous les contrôles sont verts
   build-web:
     name: web · Build
-    needs: [format, checks, test-api]
+    needs: [format, i18n, checks, test-api]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -78,7 +94,7 @@ jobs:
 
   build-api:
     name: api · Build
-    needs: [format, checks, test-api]
+    needs: [format, i18n, checks, test-api]
     runs-on: ubuntu-latest
     # Une vraie base PostgreSQL, vide, rien que pour ce job
     services:
