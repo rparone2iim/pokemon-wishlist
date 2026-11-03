@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Pokemon, WishlistItem } from '~/types/pokemon'
 import { fetchPokemon } from '~/utils/pokeapi'
+import '~/assets/css/search.css'
 import { MAX_WISHLIST, nicknameOf } from '~/utils/wishlist'
 
 const { data: pokedex, status, error } = usePokedex()
