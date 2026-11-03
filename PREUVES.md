@@ -502,3 +502,16 @@ Premier déploiement automatique, au merge de la PR #20 (commit `c5a60d9`) :
 https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41655499412
 
 ![CD Vercel dans la CI](preuves/cd-vercel-run.png)
+
+Vérification : un merge met à jour le site SSR en ligne. Au merge de la PR #21, la CI a redéployé toute seule et le site en ligne est passé de la version `c5a60d9` à `5076ab2` (balise `app-version` du HTML rendu par le serveur, et en bas à droite de la page).
+
+```text
+avant le merge : <meta name="app-version" content="c5a60d9">
+après le merge : <meta name="app-version" content="5076ab2">
+```
+
+Pipeline du merge, avec le job de déploiement : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41656507974
+
+![CD Vercel au merge](preuves/cd-vercel-maj-run.png)
+
+![Le site en ligne en version 5076ab2](preuves/cd-vercel-site-5076ab2.png)
