@@ -214,3 +214,35 @@ PR : https://github.com/rparone2iim/pokemon-wishlist/pull/10
 3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
 
    ![PR E2E rouge puis verte](preuves/g3-e2e-pr.png)
+
+## BDD · Initialisation · les tables avec `init.sql`
+
+Projet Supabase `pokemon-wishlist` (région Paris, `eu-west-3`, PostgreSQL 17). Le schéma est dans `apps/api/db/init.sql` et a été exécuté sur Supabase avec `psql`. Le script peut être relancé : il ne recrée que ce qui manque.
+
+```text
+$ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/db/init.sql
+$ psql "$DATABASE_URL" -c '\d public.wishlist'
+                            Table « public.wishlist »
+  Colonne   |           Type           | Collationnement | NULL-able | Par défaut
+------------+--------------------------+-----------------+-----------+------------
+ pokemon_id | integer                  |                 | not null  |
+ name       | text                     |                 | not null  |
+ nickname   | text                     |                 |           |
+ added_at   | timestamp with time zone |                 | not null  | now()
+Index :
+    "wishlist_pkey" PRIMARY KEY, btree (pokemon_id)
+    "wishlist_added_at_idx" btree (added_at)
+Contraintes de vérification :
+    "wishlist_name_check" CHECK (length(TRIM(BOTH FROM name)) > 0)
+    "wishlist_nickname_check" CHECK (nickname IS NULL OR length(nickname) >= 1 AND length(nickname) <= 12)
+    "wishlist_pokemon_id_check" CHECK (pokemon_id > 0)
+Politiques (mode sécurité de ligne activé) : (aucune)
+Triggers :
+    wishlist_max_6 BEFORE INSERT ON wishlist FOR EACH ROW EXECUTE FUNCTION wishlist_max_6()
+```
+
+La table est aussi consultable via l'API de Supabase (`supabase db query --remote=<ref> --read-only "select … from information_schema.columns where table_name = 'wishlist'"`), qui renvoie les colonnes `pokemon_id`, `name`, `nickname` et `added_at`.
+
+- **Doublon** : refusé par la clé primaire (`23505`).
+- **Limite de 6** : refusée par le trigger `wishlist_max_6` (`23514`), même si plusieurs ajouts arrivent en même temps (verrou de transaction).
+- **RLS activé** sans politique : l'API REST publique de Supabase ne peut pas lire la table, seule l'API Hono (rôle propriétaire) y accède.
