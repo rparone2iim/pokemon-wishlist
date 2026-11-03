@@ -577,3 +577,21 @@ Dans le navigateur (Chromium et WebKit), sur le site CloudFront : une fiche non 
 ![Fiche sur le site statique](preuves/ssg-fiche.png)
 
 ![Wishlist sur le site statique](preuves/ssg-wishlist.png)
+
+## CD · SSG · S3 et CloudFront automatisés
+
+Le job **web · Déploiement statique S3 + CloudFront** de `ci.yml` ne tourne que pour un push sur `main` (un merge), une fois toute la CI verte :
+
+1. **generate** : `nuxt generate`, branché sur l'API AWS, 151 fiches prégénérées ;
+2. **sync S3** : `_nuxt/` gardé en cache un an, pages toujours revalidées, fichiers retirés supprimés ;
+3. **invalidation CloudFront** : `/*`, en attendant qu'elle soit terminée ;
+4. **vérification** : le site en ligne sert bien ce commit, avec la fiche Pikachu générée.
+
+Connexion à AWS par **OIDC** : aucune clé AWS dans GitHub. Le rôle IAM `pokewishlist-github-ssg-deploy` n'est endossable que par ce dépôt, depuis l'environnement `production-ssg`, et peut seulement écrire dans le bucket du site et invalider sa distribution (`apps/web/scripts/setup-ssg-cd.sh`).
+
+Premier déploiement automatique, au merge de la PR #26 : le site statique est passé de `dev` (envoi manuel de l'étape 12) à `d71707d`. Il a fallu relancer le job une fois : le dépôt utilise le nouveau format « immuable » des jetons OIDC de GitHub (`repo:rparone2iim@341914932/pokemon-wishlist@1444002216:…`), que la confiance du rôle accepte maintenant.
+https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41664014460
+
+![CD statique dans la CI](preuves/cd-ssg-run.png)
+
+![Le site statique en version d71707d](preuves/cd-ssg-site-d71707d.png)

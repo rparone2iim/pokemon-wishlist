@@ -19,6 +19,10 @@ BUCKET=${SSG_BUCKET:-pokewishlist-ssg-$ACCOUNT}
 DIST=${SSG_DISTRIBUTION_ID:-$(aws cloudfront list-distributions \
   --query "DistributionList.Items[?Comment=='pokewishlist-ssg'].Id | [0]" --output text)}
 PROVIDER=arn:aws:iam::$ACCOUNT:oidc-provider/token.actions.githubusercontent.com
+# Format du « sub » des jetons GitHub : le dépôt peut utiliser le format immuable
+# (repo:owner@id/repo@id), qu'on lit via l'API GitHub ; l'ancien format reste accepté.
+PREFIX=$(gh api "repos/$REPO/actions/oidc/customization/sub" --jq .sub_claim_prefix 2>/dev/null || true)
+PREFIX=${PREFIX:-repo:$REPO}
 
 echo "→ Fournisseur OIDC de GitHub"
 aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$PROVIDER" >/dev/null 2>&1 ||
@@ -33,7 +37,9 @@ TRUST=$(cat <<JSON
   "Action":"sts:AssumeRoleWithWebIdentity",
   "Condition":{"StringEquals":{
     "token.actions.githubusercontent.com:aud":"sts.amazonaws.com",
-    "token.actions.githubusercontent.com:sub":"repo:$REPO:environment:production-ssg"}}}]}
+    "token.actions.githubusercontent.com:sub":[
+      "$PREFIX:environment:production-ssg",
+      "repo:$REPO:environment:production-ssg"]}}}]}
 JSON
 )
 if aws iam get-role --role-name "$ROLE" >/dev/null 2>&1; then
