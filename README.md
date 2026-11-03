@@ -91,6 +91,19 @@ L'API lit `DATABASE_URL` dans `apps/api/.env` (`npm run dev:api`, `npm run start
 
 Les tests E2E n'utilisent jamais Supabase : en local, ils tournent sur une base PostgreSQL dédiée (`createdb pokewishlist_e2e`, ou une autre adresse dans `E2E_DATABASE_URL`) ; dans la CI, sur un conteneur PostgreSQL.
 
+## En ligne
+
+- **Front (Nuxt SSR, Vercel)** : https://pokewishlist-8bit.vercel.app
+- **API (Hono, AWS Lambda)** : https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com
+
+## Déploiement Vercel (front, SSR)
+
+- Le front est rendu côté serveur (`ssr: true`) : une fiche `/pokemon/pikachu` arrive déjà remplie, et un Pokémon inconnu renvoie un vrai 404.
+- La langue est gardée dans un cookie, pour que le serveur rende la page dans la bonne langue. Côté serveur, rien n'est partagé entre visiteurs.
+- Variable Vercel : `NUXT_PUBLIC_API_BASE` = l'URL de l'API AWS. La Lambda autorise le domaine Vercel (`LAMBDA_CORS_ORIGIN`).
+- **CD** : le job **web · Déploiement Vercel (production)** de `ci.yml` ne tourne que sur `main`, une fois toute la CI verte. Il fait `vercel pull`, `vercel build` (preset Nitro `vercel`), `vercel deploy --prebuilt --prod`, puis vérifie que le site sert bien ce commit. La version déployée (commit) s'affiche en bas à droite et dans `<meta name="app-version">`.
+- Secrets GitHub : `VERCEL_TOKEN` (secret) ; `VERCEL_ORG_ID` et `VERCEL_PROJECT_ID` (variables).
+
 ## Déploiement AWS (API)
 
 L'API Hono tourne aussi sur **AWS Lambda** (Node 22, arm64, Paris), derrière une **API HTTP d'API Gateway** : https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com
@@ -127,5 +140,7 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 3. Lint, typecheck et tests Vitest pour **web** et **api**, en parallèle ; les tests de l'API tournent sur un conteneur PostgreSQL
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
 5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
+
+6. Sur `main` uniquement, si tout est vert : déploiement du front en production sur Vercel (CD)
 
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
