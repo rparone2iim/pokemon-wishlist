@@ -12,6 +12,12 @@ export default defineNuxtConfig({
     },
   },
   css: ['@fontsource/press-start-2p', '~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      // Adresse de l'API Hono (apps/api), modifiable avec NUXT_PUBLIC_API_BASE
+      apiBase: 'http://localhost:3001',
+    },
+  },
   compatibilityDate: '2025-07-15',
   vite: {
     plugins: [tailwindcss()],

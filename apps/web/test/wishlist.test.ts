@@ -16,16 +16,18 @@ function fullList(): WishlistItem[] {
   return Array.from({ length: MAX_WISHLIST }, (_, i) => ({
     id: i + 1,
     name: `pokemon-${i + 1}`,
-    addedAt: 0,
+    addedAt: '2026-11-03T10:00:00.000Z',
   }))
 }
 
 describe('addPokemon', () => {
   it('ajoute un Pokémon dans une liste vide', () => {
-    const result = addPokemon([], pikachu, 1000)
+    const result = addPokemon([], pikachu, '2026-11-03T10:00:00.000Z')
 
     expect(result.ok).toBe(true)
-    expect(result.list).toEqual([{ id: 25, name: 'pikachu', addedAt: 1000 }])
+    expect(result.list).toEqual([
+      { id: 25, name: 'pikachu', addedAt: '2026-11-03T10:00:00.000Z' },
+    ])
   })
 
   it('ne modifie pas la liste de départ', () => {
@@ -71,7 +73,9 @@ describe('removePokemon', () => {
 })
 
 describe('renamePokemon', () => {
-  const list: WishlistItem[] = [{ id: 25, name: 'pikachu', addedAt: 0 }]
+  const list: WishlistItem[] = [
+    { id: 25, name: 'pikachu', addedAt: '2026-11-03T10:00:00.000Z' },
+  ]
 
   it('affiche le vrai nom tant qu’il n’y a pas de surnom', () => {
     expect(nicknameOf(list[0]!)).toBe('pikachu')
@@ -105,7 +109,10 @@ describe('renamePokemon', () => {
   })
 
   it('ne renomme que le Pokémon demandé', () => {
-    const two = [...list, { id: 1, name: 'bulbasaur', addedAt: 0 }]
+    const two = [
+      ...list,
+      { id: 1, name: 'bulbasaur', addedAt: '2026-11-03T10:00:00.000Z' },
+    ]
     const result = renamePokemon(two, 1, 'Bulbi')
 
     expect(result[0]).toBe(two[0])

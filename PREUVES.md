@@ -157,3 +157,23 @@ L'API a ESLint, Prettier, Vitest et ses scripts npm (`lint`, `format:check`, `ty
 3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
 
    ![Back PR rouge puis verte](preuves/b3-pr.png)
+
+## Global · Connexion · Nuxt branché sur l'API Hono
+
+Le front ne garde plus la wishlist lui-même : il appelle l'API Hono (`apps/web/app/utils/api.ts`).
+
+| Action dans Nuxt      | Appel vers Hono                                                |
+| --------------------- | -------------------------------------------------------------- |
+| Ouvrir la wishlist    | `GET /wishlist`                                                |
+| Ajouter un Pokémon    | `POST /wishlist`                                               |
+| Retirer un Pokémon    | `DELETE /wishlist/:id`                                         |
+| Renommer · Tout vider | `PATCH /wishlist/:id` · `DELETE /wishlist`                     |
+| Chercher un Pokémon   | `GET /pokemon` · `GET /pokemon/:nom` (l'API interroge PokéAPI) |
+
+Le `localStorage` n'est plus qu'un cache d'affichage (dernière liste connue si l'API ne répond pas) : la wishlist est celle de l'API.
+
+Vérification (Chromium et WebKit) : wishlist de l'API vide, cache local vidé, puis Pikachu ajouté depuis Nuxt. Le front a appelé `GET /wishlist`, `GET /pokemon` puis `POST /wishlist`, et Pikachu apparaît dans `GET /wishlist` de l'API.
+
+![Pikachu ajouté depuis Nuxt](preuves/g1-ajout-depuis-nuxt.png)
+
+![GET /wishlist sur l'API](preuves/g1-get-wishlist-api.png)

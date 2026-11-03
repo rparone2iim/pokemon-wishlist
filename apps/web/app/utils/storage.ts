@@ -14,7 +14,7 @@ function toWishlistItem(value: unknown): WishlistItem | null {
   return {
     id,
     name,
-    addedAt: typeof addedAt === 'number' ? addedAt : 0,
+    addedAt: typeof addedAt === 'string' ? addedAt : '',
     ...(typeof nickname === 'string' && nickname ? { nickname } : {}),
   }
 }

@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { Pokemon, WishlistItem } from '~/types/pokemon'
-import { fetchPokemon } from '~/utils/pokeapi'
 import { MAX_WISHLIST, nicknameOf } from '~/utils/wishlist'
 
 const { data: pokedex, status, error } = usePokedex()
-const { wishlist, isFull, has, add, remove, rename, clear } = useWishlist()
+const {
+  wishlist,
+  status: apiStatus,
+  isFull,
+  has,
+  add,
+  remove,
+  rename,
+  clear,
+} = useWishlist()
 const { show } = useToast()
+const api = useApi()
 
 useHead({ title: 'Ma wishlist · PokéWishlist' })
 
@@ -34,7 +43,7 @@ async function onSubmit(): Promise<void> {
   if (!q || results.value.length) return
   remoteStatus.value = 'loading'
   try {
-    const found = await fetchPokemon(q)
+    const found = await api.getPokemon(q)
     remote.value = found
     remoteStatus.value = found ? 'idle' : 'notfound'
   } catch {
@@ -42,28 +51,36 @@ async function onSubmit(): Promise<void> {
   }
 }
 
-function onAdd(pokemon: Pokemon): void {
-  const result = add(pokemon)
+const OFFLINE = "L'API ne répond pas, réessaie plus tard."
+
+async function onAdd(pokemon: Pokemon): Promise<void> {
+  const result = await add(pokemon)
   if (result.ok) show(`${displayName(pokemon.name)} rejoint la wishlist !`)
+  else if (result.error === 'duplicate')
+    show(`${displayName(pokemon.name)} est déjà dans ta wishlist !`)
   else if (result.error === 'full')
     show(`Ta wishlist est pleine (${MAX_WISHLIST} max) !`)
+  else if (result.error === 'network') show(OFFLINE)
 }
 
-function onRemove(item: WishlistItem): void {
-  remove(item.id)
-  show(`${nicknameOf(item)} quitte la wishlist.`)
+async function onRemove(item: WishlistItem): Promise<void> {
+  if (await remove(item.id)) show(`${nicknameOf(item)} quitte la wishlist.`)
+  else if (apiStatus.value === 'offline') show(OFFLINE)
 }
 
-function onRename(item: WishlistItem, nickname: string): void {
+async function onRename(item: WishlistItem, nickname: string): Promise<void> {
   const before = nicknameOf(item)
-  rename(item.id, nickname)
+  if (!(await rename(item.id, nickname))) {
+    if (apiStatus.value === 'offline') show(OFFLINE)
+    return
+  }
   const after = nicknameOf(wishlist.value.find((p) => p.id === item.id) ?? item)
   if (after !== before) show(`${before} s'appelle maintenant ${after} !`)
 }
 
-function onClear(): void {
-  clear()
-  show('La wishlist est vide.')
+async function onClear(): Promise<void> {
+  if (await clear()) show('La wishlist est vide.')
+  else show(OFFLINE)
 }
 </script>
 
@@ -175,6 +192,10 @@ function onClear(): void {
             Tout vider
           </button>
         </div>
+
+        <p v-if="apiStatus === 'offline'" class="dialog text-red" role="alert">
+          L'API ne répond pas : voici la dernière liste connue.
+        </p>
 
         <ul
           v-if="wishlist.length"

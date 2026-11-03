@@ -16,10 +16,14 @@ function memoryStorage(initial: Record<string, string> = {}) {
 const pikachu: WishlistItem = {
   id: 25,
   name: 'pikachu',
-  addedAt: 1000,
+  addedAt: '2026-11-03T10:00:00.000Z',
   nickname: 'Sparky',
 }
-const bulbasaur: WishlistItem = { id: 1, name: 'bulbasaur', addedAt: 2000 }
+const bulbasaur: WishlistItem = {
+  id: 1,
+  name: 'bulbasaur',
+  addedAt: '2026-11-03T10:05:00.000Z',
+}
 
 describe('saveWishlist', () => {
   it('sauvegarde la wishlist en JSON sous la bonne clé', () => {
@@ -82,7 +86,7 @@ describe('loadWishlist', () => {
 
     expect(loadWishlist(memoryStorage({ [STORAGE_KEY]: raw }))).toEqual([
       pikachu,
-      { id: 133, name: 'eevee', addedAt: 0 },
+      { id: 133, name: 'eevee', addedAt: '' },
     ])
   })
 

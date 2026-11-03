@@ -12,6 +12,12 @@ export function parsePokemon(body: unknown): Pokemon | null {
   return { id, name: name.trim().toLowerCase() }
 }
 
+/** Identifiant de route valide (entier > 0), sinon null. */
+function parseId(raw: string): number | null {
+  const id = Number(raw)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
 export function wishlistRoutes(store: WishlistStore) {
   const routes = new Hono()
 
@@ -36,6 +42,7 @@ export function wishlistRoutes(store: WishlistStore) {
             result.error === 'duplicate'
               ? 'Ce Pokémon est déjà dans la wishlist'
               : `La wishlist est pleine (${MAX_WISHLIST} max)`,
+          code: result.error,
         },
         409,
       )
@@ -44,11 +51,41 @@ export function wishlistRoutes(store: WishlistStore) {
     return c.json(result.item, 201)
   })
 
+  // DELETE /wishlist → 204, vide toute la wishlist
+  routes.delete('/', (c) => {
+    store.clear()
+    return c.body(null, 204)
+  })
+
+  // PATCH /wishlist/:id { nickname } → 200 et le Pokémon renommé
+  routes.patch('/:id', async (c) => {
+    const id = parseId(c.req.param('id'))
+    if (!id) return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
+
+    const body: unknown = await c.req.json().catch(() => null)
+    const nickname =
+      typeof body === 'object' && body !== null
+        ? (body as Record<string, unknown>).nickname
+        : undefined
+    if (typeof nickname !== 'string')
+      return c.json<ApiError>(
+        { error: 'Corps attendu : { "nickname": string }' },
+        400,
+      )
+
+    const renamed = store.rename(id, nickname)
+    if (!renamed)
+      return c.json<ApiError>(
+        { error: "Ce Pokémon n'est pas dans la wishlist" },
+        404,
+      )
+    return c.json(renamed, 200)
+  })
+
   // DELETE /wishlist/:id → 200 et le Pokémon retiré, 404 s'il n'y est pas
   routes.delete('/:id', (c) => {
-    const id = Number(c.req.param('id'))
-    if (!Number.isInteger(id) || id <= 0)
-      return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
+    const id = parseId(c.req.param('id'))
+    if (!id) return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
 
     const removed = store.remove(id)
     if (!removed)

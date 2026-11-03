@@ -7,7 +7,8 @@ export const MAX_WISHLIST = 6
 /** Longueur max d'un surnom, comme dans les jeux. */
 export const MAX_NICKNAME = 12
 
-export type AddError = 'duplicate' | 'full'
+/** `network` : l'API n'a pas pu enregistrer l'ajout. */
+export type AddError = 'duplicate' | 'full' | 'network'
 
 export type AddResult =
   | { ok: true; list: WishlistItem[] }
@@ -28,7 +29,7 @@ export function isWishlistFull(list: readonly WishlistItem[]): boolean {
 export function addPokemon(
   list: readonly WishlistItem[],
   pokemon: Pokemon,
-  now: number = Date.now(),
+  now: string = new Date().toISOString(),
 ): AddResult {
   if (isInWishlist(list, pokemon.id))
     return { ok: false, error: 'duplicate', list }
