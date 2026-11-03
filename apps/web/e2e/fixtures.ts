@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { API_URL } from '../playwright.config'
 import POKEDEX from './pokedex.json' with { type: 'json' }
 
@@ -45,5 +46,17 @@ export const test = base.extend<Fixtures>({
     await use(page)
   },
 })
+
+/**
+ * Attend la réponse de l'API Hono à une requête du front. Le front met
+ * l'écran à jour tout de suite, avant la réponse : pour vérifier ce que
+ * l'API a enregistré, il faut d'abord attendre que sa réponse soit arrivée.
+ */
+export function apiResponse(page: Page, method: string, path: string) {
+  return page.waitForResponse(
+    (res) =>
+      res.url() === `${API_URL}${path}` && res.request().method() === method,
+  )
+}
 
 export { expect }
