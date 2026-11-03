@@ -399,3 +399,32 @@ Tests :
 - **API** : `test/i18n.test.ts`, les erreurs dans les 4 langues, `Accept-Language` d'un navigateur, `?lang=`, langue inconnue ramenée à l'anglais, message avec paramètre.
 - **Front** : `test/i18n.test.ts`, traduction, paramètres, langue gardée.
 - **E2E** : `e2e/i18n.spec.ts`, 6 scénarios × 2 navigateurs : anglais par défaut, l'UI dans les 4 langues, le message 404 de l'API qui change avec la langue (et l'`Accept-Language` envoyé), le refus 409 de l'API en allemand, la fiche traduite, la langue gardée après rechargement. La suite complète passe : 62 tests sur 62.
+
+## CI · Traductions · vérifier les clés des locales
+
+`scripts/check-locales.mjs` (`npm run i18n:check`) compare chaque fichier de langue à `en.json`, côté front (`apps/web/i18n/locales`) et côté back (`apps/api/src/locales`). Il signale les clés manquantes ou en trop, les traductions vides et les paramètres `{…}` différents de `en.json`, puis sort en erreur. Le script a ses propres tests (`scripts/check-locales.test.mjs`, `node --test`). Dans la CI, le job **Traductions (clés des locales)** le lance à chaque push, et les builds attendent qu'il soit vert.
+
+PR : https://github.com/rparone2iim/pokemon-wishlist/pull/17
+
+1. Une clé est retirée de `es.json` côté front (`wishlist.clear`) et une autre de `de.json` côté back (`errors.invalidId`) : le job **Traductions** échoue et les builds ne sont pas lancés. Tous les autres contrôles restent verts : c'est bien le script qui bloque.
+   Pipeline rouge : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41642243856
+
+   ```text
+   ✘ apps/web/i18n/locales/es.json : 1 problème(s)
+       - clé manquante : wishlist.clear
+   ✘ apps/api/src/locales/de.json : 1 problème(s)
+       - clé manquante : errors.invalidId
+
+   Traductions incomplètes : complète les fichiers ci-dessus.
+   ```
+
+   ![Traductions rouge](preuves/locales-ci-rouge.png)
+
+2. Les deux clés sont remises : tout repasse au vert.
+   Pipeline verte : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41642916497
+
+   ![Traductions vert](preuves/locales-ci-verte.png)
+
+3. Sur la PR, le commit cassé est rouge (✗) et le suivant vert (✓).
+
+   ![PR traductions rouge puis verte](preuves/locales-pr.png)
