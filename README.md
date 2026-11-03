@@ -150,6 +150,6 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
 5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
 
-6. Sur `main` uniquement, si tout est vert : déploiement du front en production sur Vercel (CD)
+6. Sur `main` uniquement, si tout est vert : déploiement du front en production sur Vercel (SSR) et du site statique sur S3 + CloudFront (SSG), avec connexion à AWS par OIDC (aucune clé AWS dans GitHub)
 
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
