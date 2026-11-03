@@ -63,10 +63,10 @@ Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }` · de `PATCH` : `{
 
 - CORS : le front peut appeler l'API (origines dans `CORS_ORIGIN`, `http://localhost:3000` par défaut)
 - Tests Vitest, sans réseau (tout appel à `fetch` non mocké échoue) :
-  - `test/store.test.ts` : `addPokemon`, la règle des 6 Pokémon (ajout, doublon, liste pleine)
+  - `test/wishlist.test.ts` : **tests d'intégration** des routes `/wishlist` avec `app.request()` sur une vraie base PostgreSQL de test, sans mock SQL : CRUD, doublons, limite de 6 (y compris 10 ajouts en même temps), persistance, CORS
   - `test/pokeapi.test.ts` : PokéAPI avec `fetch` mocké (200, 404, 500) et routes `/pokemon`
-  - `test/wishlist.test.ts` : routes `/wishlist` avec `app.request()` (200, 201, 204, 400, 404, 409), CORS
   - `test/health.test.ts` : `GET /health`
+- Base de test : `TEST_DATABASE_URL` (par défaut `postgresql://localhost:5432/pokewishlist_test`). Vitest la crée si besoin, y applique `db/init.sql`, la vide avant chaque test et à la fin. Les tests refusent de tourner sur une base dont le nom ne contient pas « test », et sur Supabase.
 
 ## Base de données (Supabase · PostgreSQL)
 
@@ -103,7 +103,7 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 
 1. `npm ci` à la racine dans chaque job (action commune `.github/actions/setup`)
 2. Prettier sur tout le dépôt
-3. Lint, typecheck et tests Vitest pour **web** et **api**, en parallèle
+3. Lint, typecheck et tests Vitest pour **web** et **api**, en parallèle ; les tests de l'API tournent sur un conteneur PostgreSQL
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
 5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
 

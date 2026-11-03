@@ -34,15 +34,42 @@ jobs:
           - { name: Lint (ESLint), script: lint }
           - { name: Typecheck (TypeScript), script: typecheck }
           - { name: Tests (Vitest), script: test }
+        # Les tests de l'API ont besoin d'une base : job test-api ci-dessous
+        exclude:
+          - app: api
+            check: { name: Tests (Vitest), script: test }
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: npm run ${{ matrix.check.script }} -w apps/${{ matrix.app }}
 
+  # Tests d'intégration de l'API : les routes tournent sur une vraie base
+  # PostgreSQL de test (conteneur), sans mock SQL
+  test-api:
+    name: api · Tests (Vitest + PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pokewishlist_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pokewishlist_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: npm run test -w apps/api
+
   # Les builds ne se lancent que si tous les contrôles sont verts
   build-web:
     name: web · Build
-    needs: [format, checks]
+    needs: [format, checks, test-api]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -51,7 +78,7 @@ jobs:
 
   build-api:
     name: api · Build
-    needs: [format, checks]
+    needs: [format, checks, test-api]
     runs-on: ubuntu-latest
     # Une vraie base PostgreSQL, vide, rien que pour ce job
     services:

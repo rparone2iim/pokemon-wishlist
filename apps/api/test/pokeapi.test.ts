@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../src/app.js'
+import { createPgWishlistStore } from '../src/pg-store.js'
 import { PokeApiError, createPokeApi, idFromUrl } from '../src/pokeapi.js'
+import { createTestPool } from './db.js'
 
 const BASE = 'https://pokeapi.test/api/v2'
 
@@ -85,7 +87,9 @@ describe('client PokéAPI (fetch mocké)', () => {
 })
 
 describe('routes /pokemon (front → API → PokéAPI)', () => {
-  const app = () => createApp({ pokeApi: createPokeApi(BASE) })
+  // Ces routes ne touchent pas à la wishlist : le pool ne se connecte jamais
+  const store = createPgWishlistStore(createTestPool())
+  const app = () => createApp({ store, pokeApi: createPokeApi(BASE) })
 
   it('GET /pokemon renvoie 200 et la liste', async () => {
     mockFetch(200, LIST)
