@@ -35,6 +35,7 @@ export function useWishlist() {
   const isFull = computed(() => isWishlistFull(wishlist.value))
 
   function add(pokemon) {
+    console.log('ajout', pokemon.name)
     const result = addPokemon(wishlist.value, pokemon)
     if (result.ok) wishlist.value = result.list
     return result
