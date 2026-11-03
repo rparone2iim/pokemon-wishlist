@@ -43,38 +43,39 @@ export function addPokemon(
   return { ok: true, item, list: [...list, item] }
 }
 
+/** Où la wishlist est gardée : PostgreSQL (pg-store.ts) ou la mémoire (tests). */
 export interface WishlistStore {
-  list: () => WishlistItem[]
-  add: (pokemon: Pokemon) => AddResult
-  remove: (id: number) => WishlistItem | null
-  rename: (id: number, nickname: string) => WishlistItem | null
-  clear: () => void
+  list: () => Promise<WishlistItem[]>
+  add: (pokemon: Pokemon) => Promise<AddResult>
+  remove: (id: number) => Promise<WishlistItem | null>
+  rename: (id: number, nickname: string) => Promise<WishlistItem | null>
+  clear: () => Promise<void>
 }
 
-/** Wishlist stockée dans un simple tableau en mémoire (pas de base de données). */
+/** Wishlist dans un simple tableau en mémoire, utilisée par les tests de routes. */
 export function createWishlistStore(
   now: () => Date = () => new Date(),
 ): WishlistStore {
   const items: WishlistItem[] = []
 
   return {
-    list: () => [...items],
+    list: async () => [...items],
 
-    add(pokemon) {
+    async add(pokemon) {
       const result = addPokemon(items, pokemon, now())
       if (!result.ok) return { ok: false, error: result.error }
       items.push(result.item)
       return { ok: true, item: result.item }
     },
 
-    remove(id) {
+    async remove(id) {
       const index = items.findIndex((item) => item.id === id)
       if (index === -1) return null
       const [removed] = items.splice(index, 1)
       return removed ?? null
     },
 
-    rename(id, nickname) {
+    async rename(id, nickname) {
       const index = items.findIndex((item) => item.id === id)
       const current = items[index]
       if (!current) return null
@@ -89,7 +90,7 @@ export function createWishlistStore(
       return renamed
     },
 
-    clear() {
+    async clear() {
       items.length = 0
     },
   }

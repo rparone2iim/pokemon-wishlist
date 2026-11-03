@@ -13,7 +13,7 @@ export interface HealthResponse {
 }
 
 export interface AppOptions {
-  /** Wishlist en mémoire (une neuve par défaut). */
+  /** Où la wishlist est gardée (PostgreSQL en vrai, la mémoire par défaut). */
   store?: WishlistStore
   /** Origines autorisées à appeler l'API depuis un navigateur (le front). */
   corsOrigins?: string[]
@@ -30,8 +30,8 @@ export function corsOriginsFromEnv(value = process.env.CORS_ORIGIN): string[] {
 }
 
 /**
- * Crée l'API Hono (sans base de données). Chaque appel a sa propre wishlist
- * en mémoire, ce qui isole les tests les uns des autres.
+ * Crée l'API Hono. index.ts lui donne la wishlist PostgreSQL ; sans store,
+ * elle garde une wishlist en mémoire, propre à chaque appel (tests).
  */
 export function createApp({
   store = createWishlistStore(),
@@ -53,5 +53,3 @@ export function createApp({
 
   return app
 }
-
-export const app = createApp()
