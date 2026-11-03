@@ -8,6 +8,44 @@ const POKEDEX = JSON.parse(
 )
 const port = Number(process.env.PORT ?? 4002)
 
+/** Réponse façon PokéAPI pour /pokemon/{nom} (mêmes valeurs pour tous). */
+function pokemon(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    height: 4,
+    weight: 60,
+    species: { name: p.name },
+    types: p.types.map((name, i) => ({ slot: i + 1, type: { name } })),
+    abilities: [
+      { is_hidden: false, ability: { name: 'static' } },
+      { is_hidden: true, ability: { name: 'lightning-rod' } },
+    ],
+    stats: [
+      ['hp', 35],
+      ['attack', 55],
+      ['defense', 40],
+      ['special-attack', 50],
+      ['special-defense', 50],
+      ['speed', 90],
+    ].map(([name, base_stat]) => ({ base_stat, stat: { name } })),
+  }
+}
+
+/** Réponse façon PokéAPI pour /pokemon-species/{nom}. */
+function species(p) {
+  return {
+    names: [{ name: p.fr, language: { name: 'fr' } }],
+    genera: [{ genus: 'Pokémon Test', language: { name: 'fr' } }],
+    flavor_text_entries: [
+      {
+        flavor_text: `Fiche de test\nde ${p.fr}.`,
+        language: { name: 'fr' },
+      },
+    ],
+  }
+}
+
 function send(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json' })
   res.end(JSON.stringify(body))
@@ -18,6 +56,12 @@ createServer((req, res) => {
   const parts = url.pathname.split('/').filter(Boolean) // api, v2, pokemon, :key
 
   if (url.pathname === '/health') return send(res, 200, { status: 'ok' })
+
+  // Espèce : nom français, catégorie et description
+  if (parts[2] === 'pokemon-species' && parts.length === 4) {
+    const found = POKEDEX.find((p) => p.name === parts[3])
+    return found ? send(res, 200, species(found)) : send(res, 404, 'Not Found')
+  }
   if (parts[2] !== 'pokemon') return send(res, 404, 'Not Found')
 
   if (parts.length === 3) {
@@ -31,7 +75,7 @@ createServer((req, res) => {
   }
   const key = parts[3]
   const found = POKEDEX.find((p) => p.name === key || String(p.id) === key)
-  return found ? send(res, 200, found) : send(res, 404, 'Not Found')
+  return found ? send(res, 200, pokemon(found)) : send(res, 404, 'Not Found')
 }).listen(port, () => {
   process.stdout.write(`Fausse PokéAPI prête sur http://localhost:${port}\n`)
 })

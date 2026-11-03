@@ -31,6 +31,7 @@ npm run dev:api   # API Hono sur http://localhost:3001
 
 - `/` : page d'accueil, un jardin en pixel art où des Pokémon se baladent
 - `/wishlist` : la recherche et la wishlist (6 Pokémon max, renommables)
+- `/pokemon/[name]` : la fiche d'un Pokémon (`/pokemon/pikachu`, `/pokemon/25`…) : nom français, types, description du Pokédex, taille, poids, talents et statistiques, ou « introuvable » (404). On l'ouvre en cliquant sur l'image d'une carte.
 - Tous les appels passent par l'API Hono (`app/utils/api.ts`), adresse `http://localhost:3001` par défaut, modifiable avec `NUXT_PUBLIC_API_BASE`
 - L'écran se met à jour tout de suite, puis revient en arrière si l'API refuse
 - Le `localStorage` sert de cache : la dernière liste connue s'affiche tout de suite, même si l'API ne répond pas
@@ -39,6 +40,7 @@ npm run dev:api   # API Hono sur http://localhost:3001
   - parcours réel complet (`e2e/parcours.spec.ts`) : ajout, doublon (y compris refusé par l'API en `409`), limite de 6, suppression
   - accueil (jardin, Pokémon qui bougent, bouton Commencer)
   - recherche via l'API (aucun appel direct à PokéAPI), Pokémon introuvable (404)
+  - fiche `/pokemon/[name]` : URL directe, nom français et types, numéro ou majuscules, 404, ouverture depuis une carte, ajout depuis la fiche
   - ajout, rechargement, renommage, retrait, limite de 6 Pokémon
   - API en panne, cache `localStorage` : sauvegarde, lecture, stockage vide, JSON corrompu
 
@@ -48,23 +50,23 @@ npm run dev:api   # API Hono sur http://localhost:3001
 - Interroge PokéAPI (adresse dans `POKEAPI_URL`), la liste complète est gardée en mémoire après le 1er appel
 - Wishlist stockée dans PostgreSQL (Supabase) avec des requêtes SQL paramétrées (`src/pg-store.ts`), 6 Pokémon max : elle survit aux redémarrages de l'API
 
-| Route                   | Réponses                                                                 |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `GET /health`           | `200` `{ "status": "ok", "service": "pokewishlist-api" }`                |
-| `GET /pokemon`          | `200` tous les Pokémon · `502` PokéAPI en panne                          |
-| `GET /pokemon/:nomOuId` | `200` le Pokémon · `404` introuvable · `400` nom invalide · `502`        |
-| `GET /wishlist`         | `200` la liste                                                           |
-| `POST /wishlist`        | `201` le Pokémon ajouté · `400` corps invalide · `409` doublon ou pleine |
-| `PATCH /wishlist/:id`   | `200` surnom changé · `404` absent · `400` corps invalide                |
-| `DELETE /wishlist/:id`  | `200` le Pokémon retiré · `404` absent · `400` identifiant invalide      |
-| `DELETE /wishlist`      | `204` vide la wishlist                                                   |
+| Route                   | Réponses                                                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`           | `200` `{ "status": "ok", "service": "pokewishlist-api" }`                                                                         |
+| `GET /pokemon`          | `200` tous les Pokémon · `502` PokéAPI en panne                                                                                   |
+| `GET /pokemon/:nomOuId` | `200` la fiche (nom français, types, taille, poids, talents, stats, description) · `404` introuvable · `400` nom invalide · `502` |
+| `GET /wishlist`         | `200` la liste                                                                                                                    |
+| `POST /wishlist`        | `201` le Pokémon ajouté · `400` corps invalide · `409` doublon ou pleine                                                          |
+| `PATCH /wishlist/:id`   | `200` surnom changé · `404` absent · `400` corps invalide                                                                         |
+| `DELETE /wishlist/:id`  | `200` le Pokémon retiré · `404` absent · `400` identifiant invalide                                                               |
+| `DELETE /wishlist`      | `204` vide la wishlist                                                                                                            |
 
 Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }` · de `PATCH` : `{ "nickname": "Sparky" }`
 
 - CORS : le front peut appeler l'API (origines dans `CORS_ORIGIN`, `http://localhost:3000` par défaut)
 - Tests Vitest, sans réseau (tout appel à `fetch` non mocké échoue) :
   - `test/wishlist.test.ts` : **tests d'intégration** des routes `/wishlist` avec `app.request()` sur une vraie base PostgreSQL de test, sans mock SQL : CRUD, doublons, limite de 6 (y compris 10 ajouts en même temps), persistance, CORS
-  - `test/pokeapi.test.ts` : PokéAPI avec `fetch` mocké (200, 404, 500) et routes `/pokemon`
+  - `test/pokeapi.test.ts` : PokéAPI avec `fetch` mocké (200, 404, 500), fiche détaillée (espèce, cache) et routes `/pokemon`
   - `test/health.test.ts` : `GET /health`
 - Base de test : `TEST_DATABASE_URL` (par défaut `postgresql://localhost:5432/pokewishlist_test`). Vitest la crée si besoin, y applique `db/init.sql`, la vide avant chaque test et à la fin. Les tests refusent de tourner sur une base dont le nom ne contient pas « test », et sur Supabase.
 

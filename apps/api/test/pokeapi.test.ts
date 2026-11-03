@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../src/app.js'
 import { createPgWishlistStore } from '../src/pg-store.js'
-import { PokeApiError, createPokeApi, idFromUrl } from '../src/pokeapi.js'
+import {
+  PokeApiError,
+  cleanFlavorText,
+  createPokeApi,
+  idFromUrl,
+} from '../src/pokeapi.js'
 import { createTestPool } from './db.js'
 
 const BASE = 'https://pokeapi.test/api/v2'
@@ -20,6 +25,72 @@ function mockFetch(status: number, body: unknown = {}) {
   return fetchMock
 }
 
+/** Remplace fetch par une fausse PokéAPI qui répond selon l'URL (404 sinon). */
+function mockPokeApi(routes: Record<string, [number, unknown]>) {
+  const fetchMock = vi.fn((input: string | URL | Request) => {
+    const path = String(input).replace(BASE, '')
+    const [status, body] = routes[path] ?? [404, 'Not Found']
+    return Promise.resolve(
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+/** Extraits des vraies réponses de PokéAPI pour Pikachu. */
+const PIKACHU = {
+  id: 25,
+  name: 'pikachu',
+  height: 4,
+  weight: 60,
+  species: { name: 'pikachu' },
+  types: [{ slot: 1, type: { name: 'electric' } }],
+  abilities: [
+    { is_hidden: false, ability: { name: 'static' } },
+    { is_hidden: true, ability: { name: 'lightning-rod' } },
+  ],
+  stats: [
+    { base_stat: 35, stat: { name: 'hp' } },
+    { base_stat: 90, stat: { name: 'speed' } },
+  ],
+}
+const PIKACHU_SPECIES = {
+  names: [
+    { name: 'Pikachu', language: { name: 'en' } },
+    { name: 'Pikachu', language: { name: 'fr' } },
+  ],
+  genera: [{ genus: 'Pokémon Souris', language: { name: 'fr' } }],
+  flavor_text_entries: [
+    { flavor_text: 'Old text', language: { name: 'en' } },
+    {
+      flavor_text: 'Il stocke\nl’électricité\fdans ses joues.',
+      language: { name: 'fr' },
+    },
+  ],
+}
+const PIKACHU_DETAILS = {
+  id: 25,
+  name: 'pikachu',
+  frenchName: 'Pikachu',
+  genus: 'Pokémon Souris',
+  description: 'Il stocke l’électricité dans ses joues.',
+  types: ['electric'],
+  height: 0.4,
+  weight: 6,
+  abilities: [
+    { name: 'static', hidden: false },
+    { name: 'lightning-rod', hidden: true },
+  ],
+  stats: [
+    { name: 'hp', value: 35 },
+    { name: 'speed', value: 90 },
+  ],
+}
+
 const LIST = {
   results: [
     { name: 'bulbasaur', url: `${BASE}/pokemon/1/` },
@@ -29,14 +100,51 @@ const LIST = {
 }
 
 describe('client PokéAPI (fetch mocké)', () => {
-  it('get : renvoie le Pokémon quand PokéAPI répond 200', async () => {
-    const fetchMock = mockFetch(200, { id: 25, name: 'pikachu', height: 4 })
-
-    await expect(createPokeApi(BASE).get('  Pikachu ')).resolves.toEqual({
-      id: 25,
-      name: 'pikachu',
+  it('get : renvoie la fiche du Pokémon quand PokéAPI répond 200', async () => {
+    const fetchMock = mockPokeApi({
+      '/pokemon/pikachu': [200, PIKACHU],
+      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
     })
+
+    await expect(createPokeApi(BASE).get('  Pikachu ')).resolves.toEqual(
+      PIKACHU_DETAILS,
+    )
     expect(fetchMock).toHaveBeenCalledWith(`${BASE}/pokemon/pikachu`)
+    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/pokemon-species/pikachu`)
+  })
+
+  it('get : garde les fiches en mémoire (pas de 2e appel à PokéAPI)', async () => {
+    const fetchMock = mockPokeApi({
+      '/pokemon/pikachu': [200, PIKACHU],
+      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
+    })
+    const pokeApi = createPokeApi(BASE)
+
+    await pokeApi.get('pikachu')
+    await pokeApi.get('PIKACHU')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('get : donne quand même la fiche si l’espèce ne répond pas', async () => {
+    mockPokeApi({
+      '/pokemon/pikachu': [200, PIKACHU],
+      '/pokemon-species/pikachu': [500, {}],
+    })
+
+    await expect(createPokeApi(BASE).get('pikachu')).resolves.toMatchObject({
+      id: 25,
+      frenchName: null,
+      genus: null,
+      description: null,
+      types: ['electric'],
+    })
+  })
+
+  it('cleanFlavorText : retire retours à la ligne et sauts de page', () => {
+    expect(cleanFlavorText('Une\ndescription\f du Poké\u00ad\ndex ')).toBe(
+      'Une description du Pokédex',
+    )
   })
 
   it('get : renvoie null quand le Pokémon est introuvable (404)', async () => {
@@ -100,13 +208,16 @@ describe('routes /pokemon (front → API → PokéAPI)', () => {
     expect(await res.json()).toHaveLength(2)
   })
 
-  it('GET /pokemon/:nom renvoie 200 et le Pokémon', async () => {
-    mockFetch(200, { id: 25, name: 'pikachu' })
+  it('GET /pokemon/:nom renvoie 200 et la fiche du Pokémon', async () => {
+    mockPokeApi({
+      '/pokemon/pikachu': [200, PIKACHU],
+      '/pokemon-species/pikachu': [200, PIKACHU_SPECIES],
+    })
 
     const res = await app().request('/pokemon/pikachu')
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ id: 25, name: 'pikachu' })
+    expect(await res.json()).toEqual(PIKACHU_DETAILS)
   })
 
   it('GET /pokemon/:nom renvoie 404 si PokéAPI ne le connaît pas', async () => {

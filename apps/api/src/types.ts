@@ -16,3 +16,22 @@ export interface ApiError {
   /** Raison précise d'un refus (409) : doublon ou wishlist pleine. */
   code?: 'duplicate' | 'full'
 }
+
+/** Fiche détaillée d'un Pokémon (GET /pokemon/:nomOuId), construite depuis PokéAPI. */
+export interface PokemonDetails extends Pokemon {
+  /** Nom français (espèce PokéAPI) ; null s'il est inconnu. */
+  frenchName: string | null
+  /** Catégorie du Pokédex, par exemple « Pokémon Souris ». */
+  genus: string | null
+  /** Description du Pokédex en français. */
+  description: string | null
+  /** Types en anglais, comme dans PokéAPI (« electric »…). */
+  types: string[]
+  /** Taille en mètres. */
+  height: number
+  /** Poids en kilos. */
+  weight: number
+  abilities: { name: string; hidden: boolean }[]
+  /** Statistiques de base (« hp », « attack »…). */
+  stats: { name: string; value: number }[]
+}

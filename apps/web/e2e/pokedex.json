@@ -1,9 +1,19 @@
 [
-  { "id": 1, "name": "bulbasaur" },
-  { "id": 4, "name": "charmander" },
-  { "id": 7, "name": "squirtle" },
-  { "id": 25, "name": "pikachu" },
-  { "id": 39, "name": "jigglypuff" },
-  { "id": 54, "name": "psyduck" },
-  { "id": 133, "name": "eevee" }
+  {
+    "id": 1,
+    "name": "bulbasaur",
+    "fr": "Bulbizarre",
+    "types": ["grass", "poison"]
+  },
+  { "id": 4, "name": "charmander", "fr": "Salamèche", "types": ["fire"] },
+  { "id": 7, "name": "squirtle", "fr": "Carapuce", "types": ["water"] },
+  { "id": 25, "name": "pikachu", "fr": "Pikachu", "types": ["electric"] },
+  {
+    "id": 39,
+    "name": "jigglypuff",
+    "fr": "Rondoudou",
+    "types": ["normal", "fairy"]
+  },
+  { "id": 54, "name": "psyduck", "fr": "Psykokwak", "types": ["water"] },
+  { "id": 133, "name": "eevee", "fr": "Évoli", "types": ["normal"] }
 ]

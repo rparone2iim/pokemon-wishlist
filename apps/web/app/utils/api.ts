@@ -1,4 +1,4 @@
-import type { Pokemon, WishlistItem } from '../types/pokemon'
+import type { Pokemon, PokemonDetails, WishlistItem } from '../types/pokemon'
 
 /** Erreur quand l'API répond un statut inattendu (ou est injoignable). */
 export class ApiError extends Error {
@@ -14,8 +14,8 @@ export type ApiAddResult =
 export interface Api {
   /** GET /pokemon : tous les Pokémon (l'API les demande à PokéAPI). */
   listPokemon: () => Promise<Pokemon[]>
-  /** GET /pokemon/:nom : `null` si PokéAPI ne le connaît pas (404). */
-  getPokemon: (nameOrId: string) => Promise<Pokemon | null>
+  /** GET /pokemon/:nom : la fiche, `null` si le Pokémon n'existe pas (404) ou si le nom est invalide (400). */
+  getPokemon: (nameOrId: string) => Promise<PokemonDetails | null>
   list: () => Promise<WishlistItem[]>
   add: (pokemon: Pokemon) => Promise<ApiAddResult>
   /** `false` si le Pokémon n'était pas dans la wishlist (404). */
@@ -47,8 +47,13 @@ export function createApi(baseUrl: string): Api {
 
     async getPokemon(nameOrId) {
       const key = encodeURIComponent(nameOrId.trim().toLowerCase())
-      const res = await expect(await fetch(url(`/pokemon/${key}`)), 200, 404)
-      return res.status === 200 ? ((await res.json()) as Pokemon) : null
+      const res = await expect(
+        await fetch(url(`/pokemon/${key}`)),
+        200,
+        404,
+        400,
+      )
+      return res.status === 200 ? ((await res.json()) as PokemonDetails) : null
     },
 
     async list() {
