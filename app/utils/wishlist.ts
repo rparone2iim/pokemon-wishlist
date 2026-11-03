@@ -32,10 +32,7 @@ export function addPokemon(
 ): AddResult {
   if (isInWishlist(list, pokemon.id))
     return { ok: false, error: 'duplicate', list }
-  if (isWishlistFull(list)) {
-    debugger
-    return { ok: false, error: 'full', list }
-  }
+  if (isWishlistFull(list)) return { ok: false, error: 'full', list }
   return {
     ok: true,
     list: [...list, { id: pokemon.id, name: pokemon.name, addedAt: now }],
