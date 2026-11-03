@@ -1,0 +1,14 @@
+name: Setup
+description: Installe Node.js et les dépendances du projet (npm ci)
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+        cache: npm
+
+    - name: npm ci
+      shell: bash
+      run: npm ci
