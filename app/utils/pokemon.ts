@@ -3,7 +3,7 @@ export function spriteUrl(id: number): string {
 }
 
 export function displayName(name: string): string {
-  return name.replace(/-/g, " ");
+  return name.replace(/-/g, ' ')
 }
 
 export function dexNumber(id: number): string {
