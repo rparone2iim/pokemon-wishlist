@@ -17,4 +17,5 @@ L'application tourne sur http://localhost:3000.
 npm run lint           # ESLint (console.log et debugger interdits)
 npm run format:check   # Prettier (guillemets simples, sans point-virgule)
 npm run typecheck      # nuxt typecheck (types Pokemon et WishlistItem)
+npm test               # Vitest (règle des 6 Pokémon, doublons...)
 ```
