@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import pg from 'pg'
 
 /**
@@ -30,4 +31,10 @@ export function createPool(databaseUrl = process.env.DATABASE_URL): pg.Pool {
   // Une connexion inactive coupée par le serveur ne doit pas arrêter l'API
   pool.on('error', (error) => console.error('PostgreSQL :', error.message))
   return pool
+}
+
+/** Applique db/init.sql (le schéma) sur la base du pool. */
+export async function applySchema(pool: pg.Pool): Promise<void> {
+  const sql = await readFile(new URL('../db/init.sql', import.meta.url), 'utf8')
+  await pool.query(sql)
 }

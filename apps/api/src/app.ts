@@ -5,7 +5,6 @@ import { createPokeApi } from './pokeapi.js'
 import { pokemonRoutes } from './routes/pokemon.js'
 import { wishlistRoutes } from './routes/wishlist.js'
 import type { WishlistStore } from './store.js'
-import { createWishlistStore } from './store.js'
 
 export interface HealthResponse {
   status: 'ok'
@@ -13,8 +12,8 @@ export interface HealthResponse {
 }
 
 export interface AppOptions {
-  /** Où la wishlist est gardée (PostgreSQL en vrai, la mémoire par défaut). */
-  store?: WishlistStore
+  /** Où la wishlist est gardée (PostgreSQL). */
+  store: WishlistStore
   /** Origines autorisées à appeler l'API depuis un navigateur (le front). */
   corsOrigins?: string[]
   /** Client PokéAPI (adresse dans POKEAPI_URL, la vraie PokéAPI par défaut). */
@@ -30,14 +29,14 @@ export function corsOriginsFromEnv(value = process.env.CORS_ORIGIN): string[] {
 }
 
 /**
- * Crée l'API Hono. index.ts lui donne la wishlist PostgreSQL ; sans store,
- * elle garde une wishlist en mémoire, propre à chaque appel (tests).
+ * Crée l'API Hono. La wishlist est dans PostgreSQL : index.ts lui donne la
+ * base de DATABASE_URL, les tests une base de test isolée.
  */
 export function createApp({
-  store = createWishlistStore(),
+  store,
   corsOrigins = corsOriginsFromEnv(),
   pokeApi = createPokeApi(),
-}: AppOptions = {}) {
+}: AppOptions) {
   const app = new Hono()
 
   app.use('*', cors({ origin: corsOrigins }))

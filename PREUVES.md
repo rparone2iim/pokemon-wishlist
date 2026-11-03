@@ -286,3 +286,59 @@ Target: project pokemon-wishlist (ytfawkbkumvlqjbesptk) · production
 ```
 
 Les 36 tests E2E passent aussi sur un vrai PostgreSQL (base dédiée en local, conteneur dans la CI).
+
+## Back · Intégration · les routes testées sur une vraie BDD
+
+Les tests de routes (`apps/api/test/wishlist.test.ts`) tournent sur une **vraie base PostgreSQL de test**, isolée de Supabase. Il n'y a plus ni tableau en mémoire ni mock SQL.
+
+- **Base isolée** : `TEST_DATABASE_URL` (en local `pokewishlist_test`, dans la CI un conteneur `postgres:17`). Vitest la crée si besoin et y applique `db/init.sql` (`test/global-setup.ts`).
+- **Données nettoyées** : la table est vidée avant chaque test (`truncate`) et à la fin de la suite.
+- **Garde-fou** : les tests refusent de tourner sur Supabase ou sur une base dont le nom ne contient pas « test ».
+
+Chaque test vérifie la réponse HTTP et aussi le contenu réel de la table, lu en SQL :
+
+```text
+ ✓ test/wishlist.test.ts > GET /wishlist > renvoie 200 et une liste vide au départ
+ ✓ test/wishlist.test.ts > GET /wishlist > renvoie 200 et les Pokémon ajoutés
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 201 et le Pokémon ajouté
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 409 pour un doublon
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 409 au-delà de 6 Pokémon
+ ✓ test/wishlist.test.ts > POST /wishlist > garde la limite de 6 même avec 10 ajouts en même temps
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (JSON invalide)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (nom manquant)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (id pas un nombre)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (id négatif)
+ ✓ test/wishlist.test.ts > POST /wishlist > renvoie 400 si le corps est invalide (nom vide)
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 200 et retire le Pokémon
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 404 si le Pokémon n’est pas dans la wishlist
+ ✓ test/wishlist.test.ts > DELETE /wishlist/:id > renvoie 400 si l’identifiant est invalide
+ ✓ test/wishlist.test.ts > DELETE /wishlist > renvoie 204 et vide la wishlist
+ ✓ test/wishlist.test.ts > PATCH /wishlist/:id > renvoie 200 et donne un surnom
+ ✓ test/wishlist.test.ts > PATCH /wishlist/:id > coupe le surnom à 12 caractères
+ ✓ test/wishlist.test.ts > PATCH /wishlist/:id > retire le surnom s’il est vide ou identique au vrai nom
+ ✓ test/wishlist.test.ts > PATCH /wishlist/:id > renvoie 404 si le Pokémon n’est pas dans la wishlist
+ ✓ test/wishlist.test.ts > PATCH /wishlist/:id > renvoie 400 si le corps ou l’identifiant est invalide
+ ✓ test/wishlist.test.ts > CORS > autorise le front à appeler l’API
+ ✓ test/wishlist.test.ts > CORS > n’autorise pas une origine inconnue
+ ✓ test/wishlist.test.ts > persistance > une nouvelle instance de l’API retrouve la wishlist (comme après un redémarrage)
+      Tests  37 passed (37)
+```
+
+Sans base de données, les tests échouent : ils parlent bien à PostgreSQL.
+
+```text
+$ TEST_DATABASE_URL=postgresql://localhost:5999/pokewishlist_test npm test -w apps/api
+Error: connect ECONNREFUSED ::1:5999
+```
+
+Et ils refusent de toucher à Supabase :
+
+```text
+$ TEST_DATABASE_URL=postgresql://…@aws-1-eu-west-3.pooler.supabase.com:5432/postgres npm test -w apps/api
+Error: Tests refusés sur aws-1-eu-west-3.pooler.supabase.com/postgres : il faut une base de test (nom contenant « test »)
+```
+
+Dans la CI, le job **api · Tests (Vitest + PostgreSQL)** lance ces tests sur son propre conteneur PostgreSQL.
+Pipeline : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41623145266
+
+![Tests d'intégration dans la CI](preuves/bdd-integration-ci.png)

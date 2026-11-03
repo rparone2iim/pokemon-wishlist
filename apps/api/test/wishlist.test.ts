@@ -1,14 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../src/app.js'
-import {
-  MAX_NICKNAME,
-  MAX_WISHLIST,
-  createWishlistStore,
-} from '../src/store.js'
+import { createPgWishlistStore } from '../src/pg-store.js'
+import { MAX_NICKNAME, MAX_WISHLIST } from '../src/store.js'
 import type { WishlistItem } from '../src/types.js'
+import { createTestPool, resetDatabase } from './db.js'
 
-const NOW = new Date('2026-11-02T12:00:00.000Z')
-let app: ReturnType<typeof createApp>
+// Tests d'intégration : les routes tournent sur une vraie base PostgreSQL
+// de test (voir test/db.ts), sans aucun mock SQL.
+const pool = createTestPool()
+const app = createApp({ store: createPgWishlistStore(pool) })
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
 /** POST /wishlist avec un corps JSON. */
 function post(body: unknown) {
@@ -19,10 +21,18 @@ function post(body: unknown) {
   })
 }
 
-beforeEach(() => {
-  // Une wishlist en mémoire toute neuve pour chaque test
-  app = createApp({ store: createWishlistStore(() => NOW) })
-})
+/** Les lignes de la table, lues directement en SQL (sans passer par l'API). */
+async function rows() {
+  const { rows } = await pool.query<{ pokemon_id: number; name: string }>(
+    'select pokemon_id, name from wishlist order by added_at',
+  )
+  return rows
+}
+
+// Chaque test part d'une base vide…
+beforeEach(() => resetDatabase(pool))
+// …et on ferme les connexions à la fin
+afterAll(() => pool.end())
 
 describe('GET /wishlist', () => {
   it('renvoie 200 et une liste vide au départ', async () => {
@@ -53,8 +63,10 @@ describe('POST /wishlist', () => {
     expect(await res.json()).toEqual({
       id: 25,
       name: 'pikachu',
-      addedAt: NOW.toISOString(),
+      addedAt: expect.stringMatching(ISO_DATE),
     })
+    // La ligne est bien dans la table
+    expect(await rows()).toEqual([{ pokemon_id: 25, name: 'pikachu' }])
   })
 
   it('renvoie 409 pour un doublon', async () => {
@@ -66,6 +78,7 @@ describe('POST /wishlist', () => {
       error: 'Ce Pokémon est déjà dans la wishlist',
       code: 'duplicate',
     })
+    expect(await rows()).toHaveLength(1)
   })
 
   it(`renvoie 409 au-delà de ${MAX_WISHLIST} Pokémon`, async () => {
@@ -80,6 +93,21 @@ describe('POST /wishlist', () => {
     expect(
       (await (await app.request('/wishlist')).json()) as unknown[],
     ).toHaveLength(MAX_WISHLIST)
+    expect(await rows()).toHaveLength(MAX_WISHLIST)
+  })
+
+  it(`garde la limite de ${MAX_WISHLIST} même avec 10 ajouts en même temps`, async () => {
+    const statuses: number[] = await Promise.all(
+      Array.from(
+        { length: 10 },
+        async (_, i) =>
+          (await post({ id: i + 1, name: `pokemon-${i + 1}` })).status,
+      ),
+    )
+
+    expect(statuses.filter((s) => s === 201)).toHaveLength(MAX_WISHLIST)
+    expect(statuses.filter((s) => s === 409)).toHaveLength(10 - MAX_WISHLIST)
+    expect(await rows()).toHaveLength(MAX_WISHLIST)
   })
 
   it.each([
@@ -104,6 +132,7 @@ describe('DELETE /wishlist/:id', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ id: 25, name: 'pikachu' })
     expect(await (await app.request('/wishlist')).json()).toEqual([])
+    expect(await rows()).toEqual([])
   })
 
   it('renvoie 404 si le Pokémon n’est pas dans la wishlist', async () => {
@@ -211,12 +240,21 @@ describe('CORS', () => {
   })
 })
 
-describe('mémoire', () => {
-  it('chaque app a sa propre wishlist', async () => {
+describe('persistance', () => {
+  it('une nouvelle instance de l’API retrouve la wishlist (comme après un redémarrage)', async () => {
     await post({ id: 25, name: 'pikachu' })
 
-    const other = createApp()
+    // Nouvelle connexion à la base et nouvelle app, comme une API relancée
+    const otherPool = createTestPool()
+    try {
+      const restarted = createApp({ store: createPgWishlistStore(otherPool) })
+      const list = (await (
+        await restarted.request('/wishlist')
+      ).json()) as WishlistItem[]
 
-    expect(await (await other.request('/wishlist')).json()).toEqual([])
+      expect(list.map((p) => p.name)).toEqual(['pikachu'])
+    } finally {
+      await otherPool.end()
+    }
   })
 })
