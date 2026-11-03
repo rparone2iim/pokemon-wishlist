@@ -21,7 +21,7 @@ export function isInWishlist(
 }
 
 export function isWishlistFull(list: readonly WishlistItem[]): boolean {
-  return list.length > MAX_WISHLIST
+  return list.length >= MAX_WISHLIST
 }
 
 /** Ajoute un Pokémon sans modifier la liste d'origine (refuse doublons et liste pleine). */
