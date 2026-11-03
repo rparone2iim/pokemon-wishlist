@@ -38,6 +38,7 @@
     "viewPage": "Ver la ficha de {name}",
     "nicknameOf": "Mote de {name}",
     "rename": "Renombrar",
+    "like": "Me gusta {name} ({count} me gusta)",
     "ok": "OK",
     "remove": "x Quitar"
   },

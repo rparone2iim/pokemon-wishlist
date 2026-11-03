@@ -11,6 +11,7 @@ const {
   add,
   remove,
   rename,
+  like,
   clear,
 } = useWishlist()
 const { show } = useToast()
@@ -79,6 +80,10 @@ async function onRename(item: WishlistItem, nickname: string): Promise<void> {
   }
   const after = nicknameOf(wishlist.value.find((p) => p.id === item.id) ?? item)
   if (after !== before) show(t('toast.renamed', { before, after }))
+}
+
+async function onLike(item: WishlistItem): Promise<void> {
+  if (!(await like(item.id)) && apiStatus.value === 'offline') offline()
 }
 
 async function onClear(): Promise<void> {
@@ -213,6 +218,7 @@ async function onClear(): Promise<void> {
               :item="p"
               @rename="onRename(p, $event)"
               @remove="onRemove(p)"
+              @like="onLike(p)"
             />
           </li>
         </ul>

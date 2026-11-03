@@ -23,6 +23,7 @@ export interface UseWishlist {
   add: (pokemon: Pokemon) => Promise<AddResult>
   remove: (id: number) => Promise<boolean>
   rename: (id: number, nickname: string) => Promise<boolean>
+  like: (id: number) => Promise<boolean>
   clear: () => Promise<boolean>
   refresh: () => Promise<void>
 }
@@ -157,6 +158,18 @@ export function useWishlist(): UseWishlist {
         () => renamePokemon(wishlist.value, id, nickname),
         async () => {
           const item = await api.rename(id, nickname)
+          if (item) replace(item)
+          return item !== null
+        },
+      ),
+    like: (id) =>
+      optimistic(
+        () =>
+          wishlist.value.map((p) =>
+            p.id === id ? { ...p, likes: (p.likes ?? 0) + 1 } : p,
+          ),
+        async () => {
+          const item = await api.like(id)
           if (item) replace(item)
           return item !== null
         },

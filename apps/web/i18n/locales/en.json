@@ -38,6 +38,7 @@
     "viewPage": "See {name}'s page",
     "nicknameOf": "Nickname of {name}",
     "rename": "Rename",
+    "like": "Like {name} ({count} likes)",
     "ok": "OK",
     "remove": "x Remove"
   },

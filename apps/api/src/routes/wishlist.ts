@@ -73,6 +73,21 @@ export function wishlistRoutes(store: WishlistStore) {
     return c.json(renamed, 200)
   })
 
+  // POST /wishlist/:id/like → 200 et le Pokémon avec un like de plus
+  // DELETE /wishlist/:id/like → 200 et un like de moins (jamais sous 0)
+  for (const [method, action] of [
+    ['post', 'like'],
+    ['delete', 'unlike'],
+  ] as const) {
+    routes[method]('/:id/like', async (c) => {
+      const id = parseId(c.req.param('id'))
+      if (!id) return c.json<ApiError>({ error: t(c, 'invalidId') }, 400)
+      const item = await store[action](id)
+      if (!item) return c.json<ApiError>({ error: t(c, 'notInWishlist') }, 404)
+      return c.json(item, 200)
+    })
+  }
+
   // DELETE /wishlist/:id → 200 et le Pokémon retiré, 404 s'il n'y est pas
   routes.delete('/:id', async (c) => {
     const id = parseId(c.req.param('id'))

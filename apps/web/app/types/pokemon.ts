@@ -9,6 +9,8 @@ export interface WishlistItem extends Pokemon {
   addedAt: string
   /** Surnom choisi par le joueur ; absent = on affiche le vrai nom. */
   nickname?: string
+  /** Nombre de likes (absent dans un ancien cache = 0). */
+  likes?: number
 }
 
 /** Fiche détaillée d'un Pokémon, renvoyée par l'API Hono (GET /pokemon/:nom). */

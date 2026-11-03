@@ -6,6 +6,7 @@
     "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "start": "node --env-file-if-exists=.env dist/index.js",
     "db:init": "tsx --env-file-if-exists=.env scripts/db-init.ts",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/db-init.ts",
     "build": "tsc -p tsconfig.build.json",
     "build:lambda": "tsx scripts/build-lambda.ts",
     "deploy:lambda": "bash scripts/deploy-lambda.sh",

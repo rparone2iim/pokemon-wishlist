@@ -38,6 +38,7 @@
     "viewPage": "Voir la fiche de {name}",
     "nicknameOf": "Surnom de {name}",
     "rename": "Renommer",
+    "like": "Aimer {name} ({count} likes)",
     "ok": "OK",
     "remove": "x Retirer"
   },

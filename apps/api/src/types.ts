@@ -9,6 +9,8 @@ export interface WishlistItem extends Pokemon {
   addedAt: string
   /** Surnom choisi par le joueur ; absent = le vrai nom est affiché. */
   nickname?: string
+  /** Nombre de likes (migration 001_likes.sql). */
+  likes: number
 }
 
 export interface ApiError {
