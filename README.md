@@ -19,11 +19,16 @@ npm run dev:api   # API Hono sur http://localhost:3001
 
 ## API Hono
 
-Sans base de données.
+Sans base de données : la wishlist est un tableau en mémoire (6 Pokémon maximum).
 
-| Route         | Réponse                                                   |
-| ------------- | --------------------------------------------------------- |
-| `GET /health` | `200` `{ "status": "ok", "service": "pokewishlist-api" }` |
+| Route                  | Réponse                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `GET /health`          | `200` `{ "status": "ok", "service": "pokewishlist-api" }`                |
+| `GET /wishlist`        | `200` et la liste                                                        |
+| `POST /wishlist`       | `201` et le Pokémon ajouté · `400` corps invalide · `409` doublon/pleine |
+| `DELETE /wishlist/:id` | `200` et le Pokémon retiré · `404` s'il n'y est pas                      |
+
+Corps de `POST /wishlist` : `{ "id": 25, "name": "pikachu" }`. Les routes sont testées avec `app.request()` (`apps/api/test`), sans démarrer de serveur.
 
 ## Vérifications
 
