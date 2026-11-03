@@ -21,13 +21,19 @@ export function poolConfig(databaseUrl: string): pg.PoolConfig {
   }
 }
 
-/** Pool de connexions PostgreSQL (les connexions sont ouvertes à la demande). */
-export function createPool(databaseUrl = process.env.DATABASE_URL): pg.Pool {
+/**
+ * Pool de connexions PostgreSQL (les connexions sont ouvertes à la demande).
+ * Sur Lambda, un conteneur ne traite qu'une requête à la fois : `max` petit.
+ */
+export function createPool(
+  databaseUrl = process.env.DATABASE_URL,
+  max = 5,
+): pg.Pool {
   if (!databaseUrl)
     throw new Error(
       'DATABASE_URL manquant : copier apps/api/.env.example en apps/api/.env',
     )
-  const pool = new pg.Pool({ ...poolConfig(databaseUrl), max: 5 })
+  const pool = new pg.Pool({ ...poolConfig(databaseUrl), max })
   // Une connexion inactive coupée par le serveur ne doit pas arrêter l'API
   pool.on('error', (error) => console.error('PostgreSQL :', error.message))
   return pool
