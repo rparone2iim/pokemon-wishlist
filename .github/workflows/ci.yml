@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  install:
-    name: Installation
+  lint:
+    name: Lint (ESLint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -19,3 +19,4 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run lint
