@@ -4,21 +4,9 @@ export interface Pokemon {
   name: string
 }
 
-/** Un Pokémon ajouté à la wishlist, avec sa date d'ajout. */
+/** Un Pokémon ajouté à la wishlist, avec sa date d'ajout (ISO 8601, donnée par l'API). */
 export interface WishlistItem extends Pokemon {
-  addedAt: number
+  addedAt: string
   /** Surnom choisi par le joueur ; absent = on affiche le vrai nom. */
   nickname?: string
-}
-
-/** Réponse de https://pokeapi.co/api/v2/pokemon */
-export interface PokeApiList {
-  count: number
-  results: { name: string; url: string }[]
-}
-
-/** Réponse de https://pokeapi.co/api/v2/pokemon/{nom ou numéro} (champs utilisés) */
-export interface PokeApiPokemon {
-  id: number
-  name: string
 }
