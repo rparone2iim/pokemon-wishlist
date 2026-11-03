@@ -28,3 +28,6 @@ logs
 playwright-report
 test-results
 blob-report
+
+# Vercel (projet lié, build local)
+.vercel

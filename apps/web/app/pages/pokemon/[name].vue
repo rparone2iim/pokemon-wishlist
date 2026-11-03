@@ -20,10 +20,14 @@ const {
   data: lookup,
   status,
   error,
-} = useAsyncData<PokemonLookup>(
+} = await useAsyncData<PokemonLookup>(
   () => `pokemon:${locale.value}:${name.value.toLowerCase()}`,
   () => api.getPokemon(name.value),
 )
+
+// SSR : un Pokémon introuvable renvoie un vrai code HTTP 404 (ou 400 si le nom est invalide)
+if (import.meta.server && lookup.value && !lookup.value.ok)
+  setResponseStatus(useRequestEvent()!, lookup.value.status)
 
 const pokemon = computed<PokemonDetails | null>(() =>
   lookup.value?.ok ? lookup.value.pokemon : null,

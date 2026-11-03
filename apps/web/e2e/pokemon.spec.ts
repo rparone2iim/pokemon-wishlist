@@ -123,3 +123,44 @@ test.describe('fiche Pokémon /pokemon/[name]', () => {
     expect(list).toMatchObject([{ id: 133, name: 'eevee' }])
   })
 })
+
+test.describe('SSR', () => {
+  test('la fiche Pokémon arrive en HTML rendu par le serveur', async ({
+    request,
+  }) => {
+    // Une simple requête HTTP, sans navigateur ni JavaScript
+    const res = await request.get('/pokemon/pikachu', {
+      headers: { Cookie: 'pokewishlist-lang=fr' },
+    })
+    const html = await res.text()
+
+    expect(res.status()).toBe(200)
+    expect(html).toContain('<h1')
+    expect(html).toMatch(/>\s*Pikachu\s*<\/h1>/)
+    expect(html).toContain('Fiche de test de Pikachu.')
+    expect(html).toContain('Électrik')
+    expect(html).toMatch(/<html\s+lang="fr"/)
+  })
+
+  test('un Pokémon introuvable renvoie un vrai 404 HTTP', async ({
+    request,
+  }) => {
+    const res = await request.get('/pokemon/pikachoux')
+
+    expect(res.status()).toBe(404)
+    expect(await res.text()).toContain('Pokémon not found')
+  })
+
+  test('le serveur rend la fiche dans la langue du cookie', async ({
+    request,
+  }) => {
+    const html = await (
+      await request.get('/pokemon/bulbasaur', {
+        headers: { Cookie: 'pokewishlist-lang=de' },
+      })
+    ).text()
+
+    expect(html).toContain('Test-Pokémon')
+    expect(html).toContain('Pflanze')
+  })
+})

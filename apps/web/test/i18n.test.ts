@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_LOCALE,
   LOCALES,
-  LOCALE_STORAGE_KEY,
+  LOCALE_COOKIE,
   hasMessage,
   localeTag,
-  savedLocale,
+  parseLocale,
   translate,
 } from '../app/utils/i18n'
 import type { MessageKey } from '../app/utils/i18n'
@@ -38,20 +38,12 @@ describe('traductions du front', () => {
     expect(hasMessage('types.stellar')).toBe(false)
   })
 
-  it('reprend la langue gardée dans le navigateur, sinon l’anglais', () => {
-    const storage = (value: string | null) => ({ getItem: () => value })
-    expect(savedLocale(storage('de'))).toBe('de')
-    expect(savedLocale(storage('it'))).toBe('en')
-    expect(savedLocale(storage(null))).toBe('en')
-    expect(savedLocale(undefined)).toBe('en')
-    expect(
-      savedLocale({
-        getItem: () => {
-          throw new Error('bloqué')
-        },
-      }),
-    ).toBe('en')
-    expect(LOCALE_STORAGE_KEY).toBe('pokewishlist-lang')
+  it('reprend la langue gardée dans le cookie, sinon l’anglais', () => {
+    expect(parseLocale('de')).toBe('de')
+    expect(parseLocale('it')).toBe('en')
+    expect(parseLocale(null)).toBe('en')
+    expect(parseLocale(undefined)).toBe('en')
+    expect(LOCALE_COOKIE).toBe('pokewishlist-lang')
   })
 
   it('donne la balise de langue pour Intl et <html lang>', () => {

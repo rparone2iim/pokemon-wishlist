@@ -14,8 +14,8 @@ export const LOCALES = [
 export type Locale = (typeof LOCALES)[number]['code']
 export const DEFAULT_LOCALE: Locale = 'en'
 
-/** Où la langue choisie est gardée dans le navigateur. */
-export const LOCALE_STORAGE_KEY = 'pokewishlist-lang'
+/** Cookie où la langue choisie est gardée (lu aussi par le serveur, en SSR). */
+export const LOCALE_COOKIE = 'pokewishlist-lang'
 
 type Dictionary = { [key: string]: string | Dictionary }
 
@@ -68,14 +68,7 @@ export function translate(
   )
 }
 
-/** La langue gardée dans le navigateur, sinon l'anglais. */
-export function savedLocale(
-  storage: Pick<Storage, 'getItem'> | undefined,
-): Locale {
-  try {
-    const value = storage?.getItem(LOCALE_STORAGE_KEY)
-    return isLocale(value) ? value : DEFAULT_LOCALE
-  } catch {
-    return DEFAULT_LOCALE
-  }
+/** La langue gardée (valeur du cookie), sinon l'anglais. */
+export function parseLocale(value: unknown): Locale {
+  return isLocale(value) ? value : DEFAULT_LOCALE
 }

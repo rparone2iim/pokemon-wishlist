@@ -204,3 +204,51 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report
           retention-days: 7
+
+  # CD : le front part en production sur Vercel (SSR) quand toute la CI est
+  # verte, uniquement pour un push sur main (un merge de PR).
+  deploy-web:
+    name: web · Déploiement Vercel (production)
+    needs: [format, i18n, checks, test-api, build-web, build-api, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://pokewishlist-8bit.vercel.app
+    # Un seul déploiement à la fois, jamais annulé en plein milieu
+    concurrency:
+      group: deploy-web-production
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SITE_URL: https://pokewishlist-8bit.vercel.app
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Réglages du projet Vercel (production)
+        run: npx vercel@65.10.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # Le build est fait ici (preset Nitro « vercel ») ; GITHUB_SHA devient la version affichée
+      - name: Build Nuxt SSR pour Vercel
+        run: npx vercel@65.10.0 build --prod --token="$VERCEL_TOKEN"
+
+      - name: Déploiement en production
+        run: npx vercel@65.10.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Le site en ligne sert bien ce commit, en SSR
+        run: |
+          expected=${GITHUB_SHA::7}
+          for i in $(seq 1 20); do
+            html=$(curl -sf "$SITE_URL/pokemon/pikachu" || true)
+            echo "$html" | grep -q "name=\"app-version\" content=\"$expected\"" && break
+            sleep 3
+          done
+          echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
+          echo "$html" | grep -qi '<h1 id="fiche-25"'
+          echo "✔ $SITE_URL sert la version $expected, fiche Pikachu rendue par le serveur"

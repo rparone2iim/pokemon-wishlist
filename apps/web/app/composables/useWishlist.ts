@@ -36,23 +36,18 @@ interface WishlistState {
   loaded: Promise<void>
 }
 
-// Une seule wishlist partagée par toute l'appli.
+// Une seule wishlist partagée par toute l'appli, dans le navigateur.
+// (Côté serveur, chaque requête a la sienne : rien n'est partagé entre visiteurs.)
 let state: WishlistState | undefined
 
 function wishlistState(): WishlistState {
-  if (state) return state
+  if (import.meta.client && state) return state
 
   const api = useApi()
-  const storage = import.meta.client ? window.localStorage : undefined
-  // Le localStorage sert de cache : la dernière liste connue s'affiche tout de suite
-  const wishlist = ref<WishlistItem[]>(storage ? loadWishlist(storage) : [])
+  // Même valeur de départ côté serveur et côté navigateur (liste vide) :
+  // l'hydratation SSR ne voit aucune différence. Le cache et l'API viennent après.
+  const wishlist = ref<WishlistItem[]>([])
   const status = ref<WishlistStatus>('loading')
-  if (storage)
-    // Scope détaché : la sauvegarde continue même quand on quitte la page
-    // qui a créé la wishlist (sinon le watch s'arrête avec elle).
-    effectScope(true).run(() => {
-      watch(wishlist, (list) => saveWishlist(storage, list), { deep: true })
-    })
 
   // L'API Hono est la source de vérité
   async function refresh(): Promise<void> {
@@ -63,7 +58,24 @@ function wishlistState(): WishlistState {
       status.value = 'offline'
     }
   }
-  const loaded = import.meta.client ? refresh() : Promise.resolve()
+  if (import.meta.server)
+    return { api, wishlist, status, refresh, loaded: Promise.resolve() }
+
+  // Dans le navigateur, une fois la page hydratée : la dernière liste connue
+  // (cache localStorage) s'affiche tout de suite, puis l'API Hono fait foi.
+  const loaded = new Promise<void>((resolve) => {
+    onNuxtReady(async () => {
+      const storage = window.localStorage
+      wishlist.value = loadWishlist(storage)
+      // Scope détaché : la sauvegarde continue même quand on quitte la page
+      // qui a créé la wishlist (sinon le watch s'arrête avec elle).
+      effectScope(true).run(() => {
+        watch(wishlist, (list) => saveWishlist(storage, list), { deep: true })
+      })
+      await refresh()
+      resolve()
+    })
+  })
 
   state = { api, wishlist, status, refresh, loaded }
   return state

@@ -1,14 +1,14 @@
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { API_URL } from '../playwright.config'
+import { API_URL, WEB_URL } from '../playwright.config'
 import POKEDEX from './pokedex.json' with { type: 'json' }
 
 export { POKEDEX }
 
 /** Clé du cache de la wishlist dans le localStorage du front. */
 export const CACHE_KEY = 'poke-wishlist'
-/** Clé de la langue choisie dans le localStorage du front. */
-export const LANG_KEY = 'pokewishlist-lang'
+/** Cookie de la langue choisie (lu aussi par le serveur, en SSR). */
+export const LANG_COOKIE = 'pokewishlist-lang'
 
 // Image PNG transparente de 1×1 pixel, servie à la place des sprites
 const PIXEL = Buffer.from(
@@ -47,10 +47,16 @@ export const test = base.extend<Fixtures>({
       { key: CACHE_KEY, value: cache },
     )
     if (lang !== null)
-      await page.addInitScript(
-        ({ key, value }) => window.localStorage.setItem(key, value),
-        { key: LANG_KEY, value: lang },
-      )
+      await page
+        .context()
+        .addCookies([{ name: LANG_COOKIE, value: lang, url: WEB_URL }])
+
+    // SSR : la page rendue par le serveur doit correspondre exactement à celle
+    // du navigateur. Vue signale toute différence d'hydratation dans la console.
+    const hydration: string[] = []
+    page.on('console', (message) => {
+      if (/hydration/i.test(message.text())) hydration.push(message.text())
+    })
 
     // Les sprites sont simulés (PokéAPI, elle, est simulée côté API)
     await page.route('https://raw.githubusercontent.com/**', (route) =>
@@ -58,6 +64,8 @@ export const test = base.extend<Fixtures>({
     )
 
     await use(page)
+
+    expect(hydration, 'différences d’hydratation SSR').toEqual([])
   },
 })
 

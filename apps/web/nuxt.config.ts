@@ -3,7 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint'],
-  ssr: false,
+  // Rendu côté serveur (SSR) : les pages arrivent déjà remplies, fiches Pokémon comprises
+  ssr: true,
   devtools: { enabled: true },
   app: {
     head: {
@@ -16,6 +17,8 @@ export default defineNuxtConfig({
     public: {
       // Adresse de l'API Hono (apps/api), modifiable avec NUXT_PUBLIC_API_BASE
       apiBase: 'http://localhost:3001',
+      // Commit déployé (GITHUB_SHA dans la CI) : affiché en bas de page
+      version: (process.env.GITHUB_SHA ?? 'dev').slice(0, 7),
     },
   },
   compatibilityDate: '2025-07-15',
