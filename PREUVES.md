@@ -595,3 +595,14 @@ https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41664014460
 ![CD statique dans la CI](preuves/cd-ssg-run.png)
 
 ![Le site statique en version d71707d](preuves/cd-ssg-site-d71707d.png)
+
+Vérification : un merge actualise automatiquement le site statique. Au merge de la PR #27, sans aucune intervention, la CI a généré le site, l'a envoyé sur S3 et a invalidé CloudFront. Le site statique est passé de `d71707d` à `2e38fc7` (en même temps que le front Vercel).
+
+```text
+avant le merge : <meta name="app-version" content="d71707d">
+après le merge : <meta name="app-version" content="2e38fc7">
+```
+
+https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41665487286
+
+![CD statique au merge](preuves/cd-ssg-maj-run.png)
