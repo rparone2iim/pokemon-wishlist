@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'PokéWishlist',
-      htmlAttrs: { lang: 'fr' },
+      htmlAttrs: { lang: 'en' },
     },
   },
   css: ['@fontsource/press-start-2p', '~/assets/css/main.css'],

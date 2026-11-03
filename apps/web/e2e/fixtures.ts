@@ -7,6 +7,8 @@ export { POKEDEX }
 
 /** Clé du cache de la wishlist dans le localStorage du front. */
 export const CACHE_KEY = 'poke-wishlist'
+/** Clé de la langue choisie dans le localStorage du front. */
+export const LANG_KEY = 'pokewishlist-lang'
 
 // Image PNG transparente de 1×1 pixel, servie à la place des sprites
 const PIXEL = Buffer.from(
@@ -19,13 +21,20 @@ interface Fixtures {
   api: string
   /** Contenu du localStorage au chargement de la page (`null` = vide). */
   cache: string | null
+  /**
+   * Langue de l'appli imposée à chaque chargement. Les scénarios historiques
+   * vérifient des textes en français : ils demandent « fr ». `null` laisse
+   * l'appli choisir (anglais par défaut, puis la langue gardée).
+   */
+  lang: 'en' | 'fr' | 'es' | 'de' | null
 }
 
 export const test = base.extend<Fixtures>({
   api: API_URL,
   cache: [null, { option: true }],
+  lang: ['fr', { option: true }],
 
-  page: async ({ page, request, cache }, use) => {
+  page: async ({ page, request, cache, lang }, use) => {
     // Chaque test part d'une wishlist vide côté API…
     expect((await request.delete(`${API_URL}/wishlist`)).status()).toBe(204)
 
@@ -37,6 +46,11 @@ export const test = base.extend<Fixtures>({
       },
       { key: CACHE_KEY, value: cache },
     )
+    if (lang !== null)
+      await page.addInitScript(
+        ({ key, value }) => window.localStorage.setItem(key, value),
+        { key: LANG_KEY, value: lang },
+      )
 
     // Les sprites sont simulés (PokéAPI, elle, est simulée côté API)
     await page.route('https://raw.githubusercontent.com/**', (route) =>

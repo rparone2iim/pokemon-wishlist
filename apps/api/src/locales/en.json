@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "routeNotFound": "Route not found",
+    "invalidBody": "Expected body: { \"id\": number, \"name\": string }",
+    "invalidNicknameBody": "Expected body: { \"nickname\": string }",
+    "invalidId": "Invalid id",
+    "duplicate": "This Pokémon is already in the wishlist",
+    "full": "The wishlist is full ({max} max)",
+    "notInWishlist": "This Pokémon is not in the wishlist",
+    "invalidName": "Invalid name or number",
+    "pokemonNotFound": "Pokémon not found",
+    "pokeApiDown": "PokéAPI is not responding"
+  }
+}

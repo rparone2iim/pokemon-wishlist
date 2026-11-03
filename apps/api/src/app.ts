@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import type { AppEnv } from './i18n.js'
+import { detectLanguage, t } from './i18n.js'
 import type { PokeApi } from './pokeapi.js'
 import { createPokeApi } from './pokeapi.js'
 import { pokemonRoutes } from './routes/pokemon.js'
@@ -37,9 +39,11 @@ export function createApp({
   corsOrigins = corsOriginsFromEnv(),
   pokeApi = createPokeApi(),
 }: AppOptions) {
-  const app = new Hono()
+  const app = new Hono<AppEnv>()
 
   app.use('*', cors({ origin: corsOrigins }))
+  // Langue des messages d'erreur : ?lang= ou Accept-Language (anglais par défaut)
+  app.use('*', detectLanguage)
 
   app.get('/health', (c) =>
     c.json<HealthResponse>({ status: 'ok', service: 'pokewishlist-api' }, 200),
@@ -48,7 +52,7 @@ export function createApp({
   app.route('/pokemon', pokemonRoutes(pokeApi))
   app.route('/wishlist', wishlistRoutes(store))
 
-  app.notFound((c) => c.json({ error: 'Route introuvable' }, 404))
+  app.notFound((c) => c.json({ error: t(c, 'routeNotFound') }, 404))
 
   return app
 }

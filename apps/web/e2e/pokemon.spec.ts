@@ -60,10 +60,13 @@ test.describe('fiche Pokémon /pokemon/[name]', () => {
     await page.goto('/pokemon/pikachoux')
 
     await expect(
-      page.getByRole('heading', { name: /Pokémon introuvable/ }),
+      page.getByRole('heading', { name: /Pokémon inconnu/ }),
     ).toBeVisible()
-    await expect(page.getByText(/« pikachoux » est introuvable/)).toBeVisible()
-    await expect(page).toHaveTitle('Pokémon introuvable · PokéWishlist')
+    // Le message vient de l'API Hono (404), en français comme l'appli
+    await expect(
+      page.getByText(/Pokémon introuvable : « pikachoux » \(404\)/),
+    ).toBeVisible()
+    await expect(page).toHaveTitle('Pokémon inconnu · PokéWishlist')
     await expect(fiche(page)).toHaveCount(0)
 
     // On peut revenir à la wishlist
@@ -75,8 +78,9 @@ test.describe('fiche Pokémon /pokemon/[name]', () => {
     await page.goto('/pokemon/pika%20chu!')
 
     await expect(
-      page.getByRole('heading', { name: /Pokémon introuvable/ }),
+      page.getByRole('heading', { name: /Pokémon inconnu/ }),
     ).toBeVisible()
+    await expect(page.getByText(/Nom ou numéro invalide/)).toBeVisible()
   })
 
   test('on ouvre la fiche depuis une carte de la wishlist', async ({

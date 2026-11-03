@@ -27,6 +27,13 @@ npm run dev       # front Nuxt sur http://localhost:3000
 npm run dev:api   # API Hono sur http://localhost:3001
 ```
 
+## Langues (i18n)
+
+L'appli et l'API parlent **anglais par défaut**, et aussi français, espagnol et allemand.
+
+- **Front** : `apps/web/i18n/locales/{en,fr,es,de}.json`. Le sélecteur EN · FR · ES · DE en haut à droite change toute l'interface ; la langue est gardée dans le navigateur. Les clés sont typées à partir de `en.json` (`app/utils/i18n.ts`).
+- **API** : `apps/api/src/locales/{en,fr,es,de}.json` pour les messages d'erreur. La langue vient de `?lang=` ou de l'en-tête `Accept-Language`, que le front envoie à chaque requête. La fiche Pokémon (nom, catégorie, description) arrive aussi dans cette langue.
+
 ## apps/web · le front Nuxt
 
 - `/` : page d'accueil, un jardin en pixel art où des Pokémon se baladent

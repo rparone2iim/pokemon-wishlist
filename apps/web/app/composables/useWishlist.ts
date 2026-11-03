@@ -115,7 +115,13 @@ export function useWishlist(): UseWishlist {
       async () => {
         const res = await api.add(pokemon)
         if (res.ok) replace(res.item)
-        else refused = { ok: false, error: res.error, list: wishlist.value }
+        else
+          refused = {
+            ok: false,
+            error: res.error,
+            list: wishlist.value,
+            message: res.message,
+          }
         return res.ok
       },
     )

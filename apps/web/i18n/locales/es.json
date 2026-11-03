@@ -1,0 +1,86 @@
+{
+  "app": {
+    "language": "Idioma"
+  },
+  "home": {
+    "welcome": "¡Bienvenido al jardín! Hay Pokémon salvajes paseando... ¿Cuáles quieres capturar?",
+    "start": "> Empezar",
+    "count": "{count} en tu lista de deseos"
+  },
+  "wishlist": {
+    "pageTitle": "Mi lista de deseos",
+    "back": "< Inicio",
+    "search": "Búsqueda",
+    "searchLabel": "Buscar un Pokémon",
+    "searchPlaceholder": "Nombre o número...",
+    "loading": "Cargando",
+    "inList": "En la lista",
+    "full": "Lista llena",
+    "add": "+ Añadir",
+    "notFound": "«{query}» no se encuentra en PokéAPI (404).",
+    "pokeApiDown": "No se puede contactar con PokéAPI...",
+    "noMatch": "Ningún Pokémon se llama «{query}»... Pulsa Intro para preguntar a PokéAPI.",
+    "title": "Mi lista de deseos",
+    "clear": "Vaciar todo",
+    "offline": "La API no responde: esta es la última lista conocida.",
+    "empty": "Tu lista de deseos está vacía. ¡Añade Pokémon desde la búsqueda!"
+  },
+  "toast": {
+    "added": "¡{name} se une a la lista de deseos!",
+    "duplicate": "¡{name} ya está en tu lista de deseos!",
+    "full": "¡Tu lista de deseos está llena ({max} como máximo)!",
+    "removed": "{name} sale de la lista de deseos.",
+    "renamed": "¡{before} ahora se llama {after}!",
+    "cleared": "La lista de deseos está vacía.",
+    "offline": "La API no responde, inténtalo más tarde."
+  },
+  "card": {
+    "viewPage": "Ver la ficha de {name}",
+    "nicknameOf": "Mote de {name}",
+    "rename": "Renombrar",
+    "ok": "OK",
+    "remove": "x Quitar"
+  },
+  "pokemon": {
+    "back": "< Lista de deseos",
+    "apiDown": "No se puede contactar con la API... Inténtalo más tarde.",
+    "notFoundTitle": "Pokémon desconocido",
+    "notFoundMessage": "{message}: «{name}» (404).",
+    "notFoundHelp": "Comprueba el nombre o búscalo desde la lista de deseos.",
+    "types": "Tipos",
+    "height": "Altura",
+    "weight": "Peso",
+    "abilities": "Habilidades",
+    "hidden": "(oculta)",
+    "stats": "Estadísticas",
+    "addToWishlist": "+ Añadir a la lista de deseos"
+  },
+  "types": {
+    "normal": "Normal",
+    "fire": "Fuego",
+    "water": "Agua",
+    "electric": "Eléctrico",
+    "grass": "Planta",
+    "ice": "Hielo",
+    "fighting": "Lucha",
+    "poison": "Veneno",
+    "ground": "Tierra",
+    "flying": "Volador",
+    "psychic": "Psíquico",
+    "bug": "Bicho",
+    "rock": "Roca",
+    "ghost": "Fantasma",
+    "dragon": "Dragón",
+    "dark": "Siniestro",
+    "steel": "Acero",
+    "fairy": "Hada"
+  },
+  "stats": {
+    "hp": "PS",
+    "attack": "Ataque",
+    "defense": "Defensa",
+    "special-attack": "At. Esp.",
+    "special-defense": "Def. Esp.",
+    "speed": "Velocidad"
+  }
+}

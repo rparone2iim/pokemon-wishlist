@@ -1,0 +1,86 @@
+{
+  "app": {
+    "language": "Langue"
+  },
+  "home": {
+    "welcome": "Bienvenue dans le jardin ! Des Pokémon sauvages s'y baladent... Lesquels veux-tu capturer ?",
+    "start": "> Commencer",
+    "count": "{count} dans ta wishlist"
+  },
+  "wishlist": {
+    "pageTitle": "Ma wishlist",
+    "back": "< Accueil",
+    "search": "Recherche",
+    "searchLabel": "Rechercher un Pokémon",
+    "searchPlaceholder": "Nom ou numéro...",
+    "loading": "Chargement",
+    "inList": "Dans la liste",
+    "full": "Liste pleine",
+    "add": "+ Ajouter",
+    "notFound": "« {query} » est introuvable sur PokéAPI (404).",
+    "pokeApiDown": "Impossible de contacter PokéAPI...",
+    "noMatch": "Aucun Pokémon ne s'appelle « {query} »... Appuie sur Entrée pour demander à PokéAPI.",
+    "title": "Ma wishlist",
+    "clear": "Tout vider",
+    "offline": "L'API ne répond pas : voici la dernière liste connue.",
+    "empty": "Ta wishlist est vide. Ajoute des Pokémon depuis la recherche !"
+  },
+  "toast": {
+    "added": "{name} rejoint la wishlist !",
+    "duplicate": "{name} est déjà dans ta wishlist !",
+    "full": "Ta wishlist est pleine ({max} max) !",
+    "removed": "{name} quitte la wishlist.",
+    "renamed": "{before} s'appelle maintenant {after} !",
+    "cleared": "La wishlist est vide.",
+    "offline": "L'API ne répond pas, réessaie plus tard."
+  },
+  "card": {
+    "viewPage": "Voir la fiche de {name}",
+    "nicknameOf": "Surnom de {name}",
+    "rename": "Renommer",
+    "ok": "OK",
+    "remove": "x Retirer"
+  },
+  "pokemon": {
+    "back": "< Wishlist",
+    "apiDown": "Impossible de contacter l'API... Réessaie plus tard.",
+    "notFoundTitle": "Pokémon inconnu",
+    "notFoundMessage": "{message} : « {name} » (404).",
+    "notFoundHelp": "Vérifie le nom ou cherche-le depuis la wishlist.",
+    "types": "Types",
+    "height": "Taille",
+    "weight": "Poids",
+    "abilities": "Talents",
+    "hidden": "(caché)",
+    "stats": "Statistiques",
+    "addToWishlist": "+ Ajouter à la wishlist"
+  },
+  "types": {
+    "normal": "Normal",
+    "fire": "Feu",
+    "water": "Eau",
+    "electric": "Électrik",
+    "grass": "Plante",
+    "ice": "Glace",
+    "fighting": "Combat",
+    "poison": "Poison",
+    "ground": "Sol",
+    "flying": "Vol",
+    "psychic": "Psy",
+    "bug": "Insecte",
+    "rock": "Roche",
+    "ghost": "Spectre",
+    "dragon": "Dragon",
+    "dark": "Ténèbres",
+    "steel": "Acier",
+    "fairy": "Fée"
+  },
+  "stats": {
+    "hp": "PV",
+    "attack": "Attaque",
+    "defense": "Défense",
+    "special-attack": "Atq. Spé.",
+    "special-defense": "Déf. Spé.",
+    "speed": "Vitesse"
+  }
+}

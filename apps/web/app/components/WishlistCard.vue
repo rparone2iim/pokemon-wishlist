@@ -4,6 +4,7 @@ import { MAX_NICKNAME, nicknameOf } from '~/utils/wishlist'
 
 const props = defineProps<{ item: WishlistItem }>()
 const emit = defineEmits<{ rename: [nickname: string]; remove: [] }>()
+const { t } = useI18n()
 
 const editing = ref(false)
 const draft = ref('')
@@ -39,7 +40,7 @@ function cancel(): void {
             type="text"
             class="pixel-input pixel-input--sm"
             :maxlength="MAX_NICKNAME"
-            :aria-label="`Surnom de ${displayName(item.name)}`"
+            :aria-label="t('card.nicknameOf', { name: displayName(item.name) })"
             autocomplete="off"
             spellcheck="false"
             @blur="save"
@@ -66,14 +67,14 @@ function cancel(): void {
       @mousedown.prevent
       @click="editing ? save() : startEdit()"
     >
-      {{ editing ? 'OK' : 'Renommer' }}
+      {{ editing ? t('card.ok') : t('card.rename') }}
     </button>
     <button
       type="button"
       class="pixel-btn pixel-btn--blue w-[calc(100%-8px)]"
       @click="emit('remove')"
     >
-      x Retirer
+      {{ t('card.remove') }}
     </button>
   </PokemonCard>
 </template>

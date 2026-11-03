@@ -30,17 +30,20 @@ interface PokeApiSpecies {
   flavor_text_entries?: (Translated & { flavor_text: string })[]
 }
 
-type SpeciesInfo = Pick<PokemonDetails, 'frenchName' | 'genus' | 'description'>
+type SpeciesInfo = Pick<PokemonDetails, 'localName' | 'genus' | 'description'>
 
 const NO_SPECIES: SpeciesInfo = {
-  frenchName: null,
+  localName: null,
   genus: null,
   description: null,
 }
 
-/** Les entrées en français d'une liste traduite de PokéAPI. */
-function french<T extends Translated>(list: T[] = []): T[] {
-  return list.filter((entry) => entry.language.name === 'fr')
+/** Les entrées d'une liste traduite de PokéAPI dans une langue (« fr », « de »…). */
+function inLanguage<T extends Translated>(
+  list: T[] = [],
+  language: string,
+): T[] {
+  return list.filter((entry) => entry.language.name === language)
 }
 
 /** Les textes du Pokédex contiennent des retours à la ligne et des sauts de page. */
@@ -93,8 +96,14 @@ export function idFromUrl(url: string): number {
 export interface PokeApi {
   /** Tous les Pokémon (formes spéciales exclues, leur id dépasse 10000). */
   list: () => Promise<Pokemon[]>
-  /** La fiche d'un Pokémon par nom ou numéro ; `null` s'il est introuvable (404). */
-  get: (nameOrId: string | number) => Promise<PokemonDetails | null>
+  /**
+   * La fiche d'un Pokémon par nom ou numéro, avec nom, catégorie et description
+   * dans la langue demandée (anglais par défaut) ; `null` s'il est introuvable (404).
+   */
+  get: (
+    nameOrId: string | number,
+    language?: string,
+  ) => Promise<PokemonDetails | null>
 }
 
 /**
@@ -106,7 +115,7 @@ export function createPokeApi(
 ): PokeApi {
   const url = (path: string) => `${baseUrl.replace(/\/$/, '')}${path}`
   let cachedList: Promise<Pokemon[]> | undefined
-  // Les fiches déjà demandées (PokéAPI demande de garder ses réponses en cache)
+  // Les fiches déjà demandées, par langue (PokéAPI demande de garder ses réponses en cache)
   const cachedDetails = new Map<string, PokemonDetails>()
 
   async function fetchList(): Promise<Pokemon[]> {
@@ -118,18 +127,23 @@ export function createPokeApi(
       .filter((p) => p.id < 10000)
   }
 
-  /** Nom français, catégorie et description : un bonus, la fiche s'en passe si besoin. */
-  async function fetchSpecies(name: string): Promise<SpeciesInfo> {
+  /** Nom, catégorie et description traduits : un bonus, la fiche s'en passe si besoin. */
+  async function fetchSpecies(
+    name: string,
+    language: string,
+  ): Promise<SpeciesInfo> {
     try {
       const response = await fetch(
         url(`/pokemon-species/${encodeURIComponent(name)}`),
       )
       if (!response.ok) return NO_SPECIES
       const species = (await response.json()) as PokeApiSpecies
-      const text = french(species.flavor_text_entries).at(-1)?.flavor_text
+      const text = inLanguage(species.flavor_text_entries, language).at(
+        -1,
+      )?.flavor_text
       return {
-        frenchName: french(species.names)[0]?.name ?? null,
-        genus: french(species.genera)[0]?.genus ?? null,
+        localName: inLanguage(species.names, language)[0]?.name ?? null,
+        genus: inLanguage(species.genera, language)[0]?.genus ?? null,
         description: text ? cleanFlavorText(text) : null,
       }
     } catch {
@@ -146,9 +160,10 @@ export function createPokeApi(
       return cachedList
     },
 
-    async get(nameOrId) {
+    async get(nameOrId, language = 'en') {
       const key = String(nameOrId).trim().toLowerCase()
-      const cached = cachedDetails.get(key)
+      const cacheKey = `${language}:${key}`
+      const cached = cachedDetails.get(cacheKey)
       if (cached) return cached
 
       const response = await fetch(url(`/pokemon/${encodeURIComponent(key)}`))
@@ -158,9 +173,9 @@ export function createPokeApi(
 
       const details = toDetails(
         pokemon,
-        await fetchSpecies(pokemon.species?.name ?? pokemon.name),
+        await fetchSpecies(pokemon.species?.name ?? pokemon.name, language),
       )
-      cachedDetails.set(key, details)
+      cachedDetails.set(cacheKey, details)
       return details
     },
   }

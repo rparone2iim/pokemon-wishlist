@@ -1,0 +1,86 @@
+{
+  "app": {
+    "language": "Language"
+  },
+  "home": {
+    "welcome": "Welcome to the garden! Wild Pokémon are roaming around... Which ones do you want to catch?",
+    "start": "> Start",
+    "count": "{count} in your wishlist"
+  },
+  "wishlist": {
+    "pageTitle": "My wishlist",
+    "back": "< Home",
+    "search": "Search",
+    "searchLabel": "Search for a Pokémon",
+    "searchPlaceholder": "Name or number...",
+    "loading": "Loading",
+    "inList": "In the list",
+    "full": "List full",
+    "add": "+ Add",
+    "notFound": "“{query}” can't be found on PokéAPI (404).",
+    "pokeApiDown": "Can't reach PokéAPI...",
+    "noMatch": "No Pokémon is called “{query}”... Press Enter to ask PokéAPI.",
+    "title": "My wishlist",
+    "clear": "Clear all",
+    "offline": "The API isn't responding: here is the last known list.",
+    "empty": "Your wishlist is empty. Add Pokémon from the search!"
+  },
+  "toast": {
+    "added": "{name} joins the wishlist!",
+    "duplicate": "{name} is already in your wishlist!",
+    "full": "Your wishlist is full ({max} max)!",
+    "removed": "{name} leaves the wishlist.",
+    "renamed": "{before} is now called {after}!",
+    "cleared": "The wishlist is empty.",
+    "offline": "The API isn't responding, try again later."
+  },
+  "card": {
+    "viewPage": "See {name}'s page",
+    "nicknameOf": "Nickname of {name}",
+    "rename": "Rename",
+    "ok": "OK",
+    "remove": "x Remove"
+  },
+  "pokemon": {
+    "back": "< Wishlist",
+    "apiDown": "Can't reach the API... Try again later.",
+    "notFoundTitle": "Unknown Pokémon",
+    "notFoundMessage": "{message}: “{name}” (404).",
+    "notFoundHelp": "Check the name or search for it from the wishlist.",
+    "types": "Types",
+    "height": "Height",
+    "weight": "Weight",
+    "abilities": "Abilities",
+    "hidden": "(hidden)",
+    "stats": "Stats",
+    "addToWishlist": "+ Add to wishlist"
+  },
+  "types": {
+    "normal": "Normal",
+    "fire": "Fire",
+    "water": "Water",
+    "electric": "Electric",
+    "grass": "Grass",
+    "ice": "Ice",
+    "fighting": "Fighting",
+    "poison": "Poison",
+    "ground": "Ground",
+    "flying": "Flying",
+    "psychic": "Psychic",
+    "bug": "Bug",
+    "rock": "Rock",
+    "ghost": "Ghost",
+    "dragon": "Dragon",
+    "dark": "Dark",
+    "steel": "Steel",
+    "fairy": "Fairy"
+  },
+  "stats": {
+    "hp": "HP",
+    "attack": "Attack",
+    "defense": "Defense",
+    "special-attack": "Sp. Atk",
+    "special-defense": "Sp. Def",
+    "speed": "Speed"
+  }
+}

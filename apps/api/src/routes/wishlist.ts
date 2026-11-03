@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import type { AppEnv } from '../i18n.js'
+import { t } from '../i18n.js'
 import type { WishlistStore } from '../store.js'
 import { MAX_WISHLIST } from '../store.js'
 import type { ApiError, Pokemon } from '../types.js'
@@ -19,7 +21,7 @@ function parseId(raw: string): number | null {
 }
 
 export function wishlistRoutes(store: WishlistStore) {
-  const routes = new Hono()
+  const routes = new Hono<AppEnv>()
 
   // GET /wishlist → 200 et la liste
   routes.get('/', async (c) => c.json(await store.list(), 200))
@@ -28,11 +30,7 @@ export function wishlistRoutes(store: WishlistStore) {
   routes.post('/', async (c) => {
     const body: unknown = await c.req.json().catch(() => null)
     const pokemon = parsePokemon(body)
-    if (!pokemon)
-      return c.json<ApiError>(
-        { error: 'Corps attendu : { "id": number, "name": string }' },
-        400,
-      )
+    if (!pokemon) return c.json<ApiError>({ error: t(c, 'invalidBody') }, 400)
 
     const result = await store.add(pokemon)
     if (!result.ok)
@@ -40,8 +38,8 @@ export function wishlistRoutes(store: WishlistStore) {
         {
           error:
             result.error === 'duplicate'
-              ? 'Ce Pokémon est déjà dans la wishlist'
-              : `La wishlist est pleine (${MAX_WISHLIST} max)`,
+              ? t(c, 'duplicate')
+              : t(c, 'full', { max: MAX_WISHLIST }),
           code: result.error,
         },
         409,
@@ -60,7 +58,7 @@ export function wishlistRoutes(store: WishlistStore) {
   // PATCH /wishlist/:id { nickname } → 200 et le Pokémon renommé
   routes.patch('/:id', async (c) => {
     const id = parseId(c.req.param('id'))
-    if (!id) return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
+    if (!id) return c.json<ApiError>({ error: t(c, 'invalidId') }, 400)
 
     const body: unknown = await c.req.json().catch(() => null)
     const nickname =
@@ -68,31 +66,20 @@ export function wishlistRoutes(store: WishlistStore) {
         ? (body as Record<string, unknown>).nickname
         : undefined
     if (typeof nickname !== 'string')
-      return c.json<ApiError>(
-        { error: 'Corps attendu : { "nickname": string }' },
-        400,
-      )
+      return c.json<ApiError>({ error: t(c, 'invalidNicknameBody') }, 400)
 
     const renamed = await store.rename(id, nickname)
-    if (!renamed)
-      return c.json<ApiError>(
-        { error: "Ce Pokémon n'est pas dans la wishlist" },
-        404,
-      )
+    if (!renamed) return c.json<ApiError>({ error: t(c, 'notInWishlist') }, 404)
     return c.json(renamed, 200)
   })
 
   // DELETE /wishlist/:id → 200 et le Pokémon retiré, 404 s'il n'y est pas
   routes.delete('/:id', async (c) => {
     const id = parseId(c.req.param('id'))
-    if (!id) return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
+    if (!id) return c.json<ApiError>({ error: t(c, 'invalidId') }, 400)
 
     const removed = await store.remove(id)
-    if (!removed)
-      return c.json<ApiError>(
-        { error: "Ce Pokémon n'est pas dans la wishlist" },
-        404,
-      )
+    if (!removed) return c.json<ApiError>({ error: t(c, 'notInWishlist') }, 404)
     return c.json(removed, 200)
   })
 
