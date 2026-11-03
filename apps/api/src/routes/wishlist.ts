@@ -22,7 +22,7 @@ export function wishlistRoutes(store: WishlistStore) {
   const routes = new Hono()
 
   // GET /wishlist → 200 et la liste
-  routes.get('/', (c) => c.json(store.list(), 200))
+  routes.get('/', async (c) => c.json(await store.list(), 200))
 
   // POST /wishlist → 201 et le Pokémon ajouté
   routes.post('/', async (c) => {
@@ -34,7 +34,7 @@ export function wishlistRoutes(store: WishlistStore) {
         400,
       )
 
-    const result = store.add(pokemon)
+    const result = await store.add(pokemon)
     if (!result.ok)
       return c.json<ApiError>(
         {
@@ -52,8 +52,8 @@ export function wishlistRoutes(store: WishlistStore) {
   })
 
   // DELETE /wishlist → 204, vide toute la wishlist
-  routes.delete('/', (c) => {
-    store.clear()
+  routes.delete('/', async (c) => {
+    await store.clear()
     return c.body(null, 204)
   })
 
@@ -73,7 +73,7 @@ export function wishlistRoutes(store: WishlistStore) {
         400,
       )
 
-    const renamed = store.rename(id, nickname)
+    const renamed = await store.rename(id, nickname)
     if (!renamed)
       return c.json<ApiError>(
         { error: "Ce Pokémon n'est pas dans la wishlist" },
@@ -83,11 +83,11 @@ export function wishlistRoutes(store: WishlistStore) {
   })
 
   // DELETE /wishlist/:id → 200 et le Pokémon retiré, 404 s'il n'y est pas
-  routes.delete('/:id', (c) => {
+  routes.delete('/:id', async (c) => {
     const id = parseId(c.req.param('id'))
     if (!id) return c.json<ApiError>({ error: 'Identifiant invalide' }, 400)
 
-    const removed = store.remove(id)
+    const removed = await store.remove(id)
     if (!removed)
       return c.json<ApiError>(
         { error: "Ce Pokémon n'est pas dans la wishlist" },

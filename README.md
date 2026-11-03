@@ -7,14 +7,14 @@ Monorepo npm workspaces :
 ```
 apps/
   web/   Front Nuxt (style 8 bits), port 3000
-  api/   API Hono + TypeScript, sans base de données, port 3001
+  api/   API Hono + TypeScript + PostgreSQL (Supabase), port 3001
 ```
 
 ## Architecture
 
 ```
 navigateur (front Nuxt) ──▶ API Hono ──▶ PokéAPI
-                              └─ wishlist en mémoire
+                              └─ wishlist dans PostgreSQL (Supabase)
 ```
 
 Le front ne parle qu'à l'API Hono. C'est l'API qui interroge PokéAPI et qui garde la wishlist.
@@ -46,7 +46,7 @@ npm run dev:api   # API Hono sur http://localhost:3001
 
 - [Hono](https://hono.dev) + TypeScript, servie avec `@hono/node-server`
 - Interroge PokéAPI (adresse dans `POKEAPI_URL`), la liste complète est gardée en mémoire après le 1er appel
-- Wishlist stockée dans un tableau en mémoire (pas de base de données), 6 Pokémon max
+- Wishlist stockée dans PostgreSQL (Supabase) avec des requêtes SQL paramétrées (`src/pg-store.ts`), 6 Pokémon max : elle survit aux redémarrages de l'API
 
 | Route                   | Réponses                                                                 |
 | ----------------------- | ------------------------------------------------------------------------ |
@@ -74,9 +74,12 @@ Le schéma est dans `apps/api/db/init.sql` : la table `wishlist` (clé primaire 
 
 ```bash
 cp apps/api/.env.example apps/api/.env   # puis y mettre la chaîne de connexion Supabase
-set -a; . apps/api/.env; set +a
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/db/init.sql
+npm run db:init -w apps/api               # applique db/init.sql sur DATABASE_URL
 ```
+
+L'API lit `DATABASE_URL` dans `apps/api/.env` (`npm run dev:api`, `npm run start -w apps/api`). La connexion à Supabase est chiffrée et son certificat est vérifié avec le certificat racine de Supabase (`apps/api/db/supabase-root-2021-ca.crt`).
+
+Les tests E2E n'utilisent jamais Supabase : en local, ils tournent sur une base PostgreSQL dédiée (`createdb pokewishlist_e2e`, ou une autre adresse dans `E2E_DATABASE_URL`) ; dans la CI, sur un conteneur PostgreSQL.
 
 ## Scripts (à la racine)
 

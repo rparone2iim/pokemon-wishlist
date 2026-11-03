@@ -246,3 +246,43 @@ La table est aussi consultable via l'API de Supabase (`supabase db query --remot
 - **Doublon** : refusé par la clé primaire (`23505`).
 - **Limite de 6** : refusée par le trigger `wishlist_max_6` (`23514`), même si plusieurs ajouts arrivent en même temps (verrou de transaction).
 - **RLS activé** sans politique : l'API REST publique de Supabase ne peut pas lire la table, seule l'API Hono (rôle propriétaire) y accède.
+
+## Back · Persistance · Hono branché sur PostgreSQL
+
+Le tableau en mémoire est remplacé par `apps/api/src/pg-store.ts` : chaque route fait une requête SQL **paramétrée** (`$1`, `$2`…, jamais de valeur concaténée dans le SQL) sur la base Supabase de `DATABASE_URL`. Doublons et limite de 6 sont refusés par la base (clé primaire, trigger) et renvoyés en `409` comme avant : le front n'a pas changé.
+
+Vérification sur Supabase : des Pokémon sont ajoutés et renommés, l'API est arrêtée puis relancée, et ils sont toujours là.
+
+```text
+$ curl -s -X DELETE -o /dev/null -w '%{http_code}' localhost:3001/wishlist
+204
+$ curl -s -X POST localhost:3001/wishlist -H 'content-type: application/json' -d '{"id":25,"name":"pikachu"}'
+{"id":25,"name":"pikachu","addedAt":"2026-11-03T10:46:55.396Z"}
+$ curl -s -X POST localhost:3001/wishlist -H 'content-type: application/json' -d '{"id":133,"name":"eevee"}'
+{"id":133,"name":"eevee","addedAt":"2026-11-03T10:46:55.419Z"}
+$ curl -s -X PATCH localhost:3001/wishlist/133 -H 'content-type: application/json' -d '{"nickname":"Evoli"}'
+{"id":133,"name":"eevee","addedAt":"2026-11-03T10:46:55.419Z","nickname":"Evoli"}
+$ curl -s localhost:3001/wishlist
+[{"id":25,"name":"pikachu","addedAt":"2026-11-03T10:46:55.396Z"},{"id":133,"name":"eevee","addedAt":"2026-11-03T10:46:55.419Z","nickname":"Evoli"}]
+# --- redémarrage de l API ---
+$ curl -s localhost:3001/wishlist
+[{"id":25,"name":"pikachu","addedAt":"2026-11-03T10:46:55.396Z"},{"id":133,"name":"eevee","addedAt":"2026-11-03T10:46:55.419Z","nickname":"Evoli"}]
+```
+
+Doublon et limite de 6 sur Supabase : Pikachu une 2e fois → `409`, puis 4 ajouts → `201`, le 7e → `409` « La wishlist est pleine (6 max) ». Les lignes, lues dans Supabase (`supabase db query --remote`) :
+
+```text
+Target: project pokemon-wishlist (ytfawkbkumvlqjbesptk) · production
+┌────────────┬────────────┬──────────┐
+│ pokemon_id │ name       │ nickname │
+├────────────┼────────────┼──────────┤
+│ 25         │ pikachu    │ NULL     │
+│ 133        │ eevee      │ Evoli    │
+│ 1          │ bulbasaur  │ NULL     │
+│ 4          │ charmander │ NULL     │
+│ 7          │ squirtle   │ NULL     │
+│ 39         │ jigglypuff │ NULL     │
+└────────────┴────────────┴──────────┘
+```
+
+Les 36 tests E2E passent aussi sur un vrai PostgreSQL (base dédiée en local, conteneur dans la CI).
