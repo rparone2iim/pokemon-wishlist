@@ -48,7 +48,7 @@ export function wishlistRoutes(store: WishlistStore) {
       )
 
     c.header('Location', `/wishlist/${result.item.id}`)
-    return c.json(result.item, 201)
+    return c.json(result.item, 200)
   })
 
   // DELETE /wishlist → 204, vide toute la wishlist
