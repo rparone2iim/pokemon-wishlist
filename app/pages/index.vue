@@ -2,6 +2,7 @@
 useHead({ title: 'PokéWishlist' })
 
 const { wishlist } = useWishlist()
+const count: string = wishlist.value.length
 </script>
 
 <template>
@@ -29,7 +30,7 @@ const { wishlist } = useWishlist()
           v-if="wishlist.length"
           class="pixel-badge inline-flex items-center px-4 py-4 text-[11px]"
         >
-          {{ wishlist.length }} dans ta wishlist
+          {{ count }} dans ta wishlist
         </span>
       </div>
     </main>
