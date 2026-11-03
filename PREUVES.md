@@ -515,3 +515,65 @@ Pipeline du merge, avec le job de déploiement : https://github.com/rparone2iim/
 ![CD Vercel au merge](preuves/cd-vercel-maj-run.png)
 
 ![Le site en ligne en version 5076ab2](preuves/cd-vercel-site-5076ab2.png)
+
+## Nuxt · Prégénération · les routes Pokémon au build
+
+Au build, `apps/web/prerender.ts` lit les noms dans PokéAPI (`/pokemon?limit=N`) et le hook `nitro:config` de `nuxt.config.ts` les injecte dans `nitro.prerender.routes`.
+
+- **Limite** : `PRERENDER_POKEMON` vaut 151 au déploiement (la 1re génération) et 3 dans les E2E. Sans la variable, rien n'est prégénéré.
+- **3 pages à la fois** : le compte AWS n'accepte que 10 exécutions Lambda simultanées. Un premier essai sans limite a fait échouer le build, comme prévu : une fiche qui n'a pas pu être générée bloque le déploiement au lieu de publier une page cassée.
+- **Langue** : une page prégénérée est en anglais ; une fois chargée, elle repasse dans la langue du cookie, sans différence d'hydratation.
+
+Vérification : les pages `/pokemon/[name]` ont un HTML généré. Dans le déploiement Vercel de la CI :
+
+```text
+[info] [nitro] Prerendering 151 routes
+[log] [nitro] ^[[90m  ├─ /pokemon/bulbasaur (539ms)^[[39m
+[log] [nitro] ^[[90m  ├─ /pokemon/pikachu (188ms)^[[39m
+```
+
+En ligne, une fiche prégénérée est un fichier servi par le CDN de Vercel (`HIT`), une fiche non prégénérée est rendue à la demande (`MISS`) :
+
+```text
+x-vercel-cache: HIT   ← /pokemon/pikachu (prégénérée)
+x-vercel-cache: MISS  ← /pokemon/lucario (rendue à la demande)
+```
+
+Tests : `test/prerender.test.ts` (routes depuis PokéAPI, limite) et, dans la CI, 4 tests E2E sur des fiches prégénérées : le HTML est bien le fichier généré, et la page passe dans la langue du cookie.
+
+## AWS · SSG · le front statique sur S3 et CloudFront
+
+`npm run deploy:ssg -w apps/web` (`apps/web/scripts/deploy-ssg.sh`, AWS CLI) publie le site statique : https://d1kkqanpvbsbt6.cloudfront.net
+
+- **Génération** : `nuxt generate`, avec les 151 fiches prégénérées, `200.html` et `404.html`.
+- **S3** : le bucket `pokewishlist-ssg-…` est privé ; seul CloudFront peut le lire (Origin Access Control et politique limitée à la distribution).
+- **CloudFront** : HTTPS, compression, cache optimisé. Une fonction sert `/pokemon/pikachu` depuis `pokemon/pikachu/index.html`, et une fiche non prégénérée reçoit `200.html` : l'appli la charge via l'API.
+- **Cache** : `_nuxt/` gardé un an, les pages toujours revalidées, et une invalidation à chaque envoi.
+- **API** : le CORS de la Lambda autorise le domaine CloudFront.
+
+Vérification : le site statique et ses fiches utilisent la même API AWS.
+
+```text
+$ curl -i https://d1kkqanpvbsbt6.cloudfront.net/pokemon/pikachu
+HTTP/2 200
+server: AmazonS3
+x-cache: Miss from cloudfront
+<h1 id="fiche-25">Pikachu</h1>
+apiBase:"https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com"
+
+$ curl -i https://d1kkqanpvbsbt6.cloudfront.net/pokemon/lucario
+HTTP/2 200
+server: AmazonS3
+x-cache: Error from cloudfront
+(pas prégénérée : page 200.html, la fiche est chargée par l'appli via l'API)
+apiBase:"https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com"
+
+$ curl -s -o /dev/null -w '%{http_code}' https://pokewishlist-ssg-485157611491.s3.eu-west-3.amazonaws.com/index.html
+403
+```
+
+Dans le navigateur (Chromium et WebKit), sur le site CloudFront : une fiche non prégénérée (Lucario) s'affiche via l'API, une fiche prégénérée passe en français, et Pikachu est ajouté puis retiré. Toutes les requêtes partent vers `ds5i6cov6l.execute-api.eu-west-3.amazonaws.com`, la même API que le front Vercel. Aucune erreur.
+
+![Fiche sur le site statique](preuves/ssg-fiche.png)
+
+![Wishlist sur le site statique](preuves/ssg-wishlist.png)
