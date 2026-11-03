@@ -24,20 +24,20 @@ jobs:
 
   # Contrôles de chaque app du monorepo (apps/web et apps/api)
   checks:
-    name: ${{ matrix.app }} · ${{ matrix.name }}
+    name: ${{ matrix.app }} · ${{ matrix.check.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { app: web, name: Lint (ESLint), script: lint }
-          - { app: web, name: Typecheck (TypeScript), script: typecheck }
-          - { app: web, name: Tests (Vitest), script: test }
-          - { app: api, name: Typecheck (TypeScript), script: typecheck }
+        app: [web, api]
+        check:
+          - { name: Lint (ESLint), script: lint }
+          - { name: Typecheck (TypeScript), script: typecheck }
+          - { name: Tests (Vitest), script: test }
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      - run: npm run ${{ matrix.script }} -w apps/${{ matrix.app }}
+      - run: npm run ${{ matrix.check.script }} -w apps/${{ matrix.app }}
 
   # Les builds ne se lancent que si tous les contrôles sont verts
   build-web:

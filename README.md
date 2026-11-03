@@ -52,7 +52,9 @@ npm run build          # builds de production
 | web · Lint (ESLint)          | `npm run lint -w apps/web`            |
 | web · Typecheck (TypeScript) | `npm run typecheck -w apps/web`       |
 | web · Tests (Vitest)         | `npm test -w apps/web`                |
+| api · Lint (ESLint)          | `npm run lint -w apps/api`            |
 | api · Typecheck (TypeScript) | `npm run typecheck -w apps/api`       |
+| api · Tests (Vitest)         | `npm test -w apps/api`                |
 | web · Build                  | `npm run build -w apps/web`           |
 | api · Build                  | build, puis `GET /health` renvoie 200 |
 
