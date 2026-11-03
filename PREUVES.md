@@ -342,3 +342,23 @@ Dans la CI, le job **api · Tests (Vitest + PostgreSQL)** lance ces tests sur so
 Pipeline : https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41623145266
 
 ![Tests d'intégration dans la CI](preuves/bdd-integration-ci.png)
+
+## Front · Route dynamique · la fiche `/pokemon/[name]`
+
+La page `apps/web/app/pages/pokemon/[name].vue` affiche la fiche d'un Pokémon à partir de PokéAPI, toujours via l'API Hono (`GET /pokemon/:nom`). L'API combine deux réponses de PokéAPI, le Pokémon et son espèce, et garde les fiches en cache. La fiche montre le nom français, le numéro, la catégorie, les types, la description du Pokédex, la taille, le poids, les talents et les statistiques. On peut ajouter le Pokémon à la wishlist depuis la fiche, et l'ouvrir en cliquant sur l'image d'une carte.
+
+Vérification : une URL directe affiche le Pokémon et ses informations (Chromium et WebKit, vraie PokéAPI).
+
+`http://localhost:3000/pokemon/pikachu`
+
+![Fiche de Pikachu](preuves/fiche-pikachu.png)
+
+`http://localhost:3000/pokemon/charizard` (nom français, deux types)
+
+![Fiche de Dracaufeu](preuves/fiche-dracaufeu.png)
+
+Cas 404 : `http://localhost:3000/pokemon/pikachoux`
+
+![Pokémon introuvable](preuves/fiche-404.png)
+
+Tests E2E (`apps/web/e2e/pokemon.spec.ts`, 7 scénarios × 2 navigateurs) : URL directe avec toutes les informations, nom français et deux types, numéro ou majuscules dans l'URL, 404, nom invalide, ouverture depuis une carte de la wishlist, ajout depuis la fiche. La suite complète passe : 50 tests sur 50. Répétée 8 fois, la nouvelle suite donne 112 sur 112.

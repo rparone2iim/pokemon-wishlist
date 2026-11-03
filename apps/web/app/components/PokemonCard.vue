@@ -6,8 +6,10 @@ defineProps<{ pokemon: Pokemon }>()
 
 <template>
   <article class="pixel-box group flex flex-col items-center gap-2 p-3">
-    <div
-      class="flex w-full justify-center bg-paper py-1 shadow-[inset_0_-4px_0_0_var(--color-paper-dark)]"
+    <NuxtLink
+      :to="`/pokemon/${pokemon.name}`"
+      :aria-label="`Voir la fiche de ${displayName(pokemon.name)}`"
+      class="flex w-full justify-center bg-paper py-1 shadow-[inset_0_-4px_0_0_var(--color-paper-dark)] hover:bg-paper-dark focus-visible:outline-4 focus-visible:outline-blue"
     >
       <img
         :src="spriteUrl(pokemon.id)"
@@ -17,7 +19,7 @@ defineProps<{ pokemon: Pokemon }>()
         loading="lazy"
         class="size-24 group-hover:animate-[hop_0.5s_steps(2)_infinite]"
       />
-    </div>
+    </NuxtLink>
     <p class="text-[8px] text-muted">{{ dexNumber(pokemon.id) }}</p>
     <slot name="name">
       <h3
