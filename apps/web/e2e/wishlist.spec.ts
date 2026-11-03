@@ -229,6 +229,9 @@ test.describe('cache localStorage', () => {
 
       await page.goto('/')
       await expect(page.getByRole('link', { name: /Commencer/ })).toBeVisible()
+      // Chargement terminé avant de changer de page : sinon WebKit signale les
+      // requêtes internes de Nuxt annulées par la navigation (rien à voir avec le JSON)
+      await page.waitForLoadState('networkidle')
       await page.goto('/wishlist')
       await expect(page.getByText('0/6')).toBeVisible()
       await addFromSearch(page, 'pika')

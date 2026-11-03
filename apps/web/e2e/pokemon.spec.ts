@@ -154,13 +154,45 @@ test.describe('SSR', () => {
   test('le serveur rend la fiche dans la langue du cookie', async ({
     request,
   }) => {
+    // Psykokwak n'est pas prégénéré : rendu à la demande par le serveur
+    const html = await (
+      await request.get('/pokemon/psyduck', {
+        headers: { Cookie: 'pokewishlist-lang=de' },
+      })
+    ).text()
+
+    expect(html).toContain('Test-Pokémon')
+    expect(html).toContain('Wasser')
+  })
+})
+
+// Étape 11 : dans la CI, les 3 premières fiches sont prégénérées au build
+// (PRERENDER_POKEMON=3) : leur HTML est un fichier, le même pour tous.
+test.describe('fiches prégénérées au build', () => {
+  test.skip(!process.env.PRERENDER_POKEMON, 'prégénération désactivée')
+
+  test('/pokemon/bulbasaur est un HTML généré au build', async ({
+    request,
+  }) => {
+    // Même avec un cookie allemand, c'est le fichier généré (en anglais) qui répond
     const html = await (
       await request.get('/pokemon/bulbasaur', {
         headers: { Cookie: 'pokewishlist-lang=de' },
       })
     ).text()
 
-    expect(html).toContain('Test-Pokémon')
-    expect(html).toContain('Pflanze')
+    expect(html).toMatch(/>\s*Bulbasaur\s*<\/h1>/)
+    expect(html).toContain('Test Pokémon')
+  })
+
+  test('une fois chargée, la page prégénérée passe dans la langue du cookie', async ({
+    page,
+  }) => {
+    await page.goto('/pokemon/bulbasaur')
+
+    await expect(
+      page.getByRole('article').getByRole('heading', { level: 1 }),
+    ).toHaveText(/Bulbizarre/i)
+    await expect(page.getByRole('article')).toContainText('Pokémon Test')
   })
 })
