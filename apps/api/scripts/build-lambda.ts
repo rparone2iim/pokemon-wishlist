@@ -28,6 +28,12 @@ await build({
   banner: {
     js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
   },
+  // Le commit construit (GITHUB_SHA dans la CI) devient la version de /health
+  define: {
+    'process.env.APP_VERSION': JSON.stringify(
+      (process.env.GITHUB_SHA ?? 'dev').slice(0, 7),
+    ),
+  },
   logLevel: 'warning',
 })
 

@@ -56,6 +56,7 @@ describe('gestionnaire AWS Lambda', () => {
     expect(JSON.parse(res.body)).toEqual({
       status: 'ok',
       service: 'pokewishlist-api',
+      version: 'dev',
     })
   })
 
