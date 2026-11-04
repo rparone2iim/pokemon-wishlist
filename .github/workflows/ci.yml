@@ -49,15 +49,23 @@ jobs:
         check:
           - { name: Lint (ESLint), script: lint }
           - { name: Typecheck (TypeScript), script: typecheck }
-          - { name: Tests (Vitest), script: test }
+          - { name: Tests (Vitest), script: test:coverage }
         # Les tests de l'API ont besoin d'une base : job test-api ci-dessous
         exclude:
           - app: api
-            check: { name: Tests (Vitest), script: test }
+            check: { name: Tests (Vitest), script: test:coverage }
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: npm run ${{ matrix.check.script }} -w apps/${{ matrix.app }}
+
+      - name: Rapport de couverture
+        if: matrix.check.script == 'test:coverage'
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage-${{ matrix.app }}
+          path: apps/${{ matrix.app }}/coverage
+          retention-days: 14
 
   # Tests d'intégration de l'API : les routes tournent sur une vraie base
   # PostgreSQL de test (conteneur), sans mock SQL
@@ -80,7 +88,68 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      - run: npm run test -w apps/api
+      - run: npm run test:coverage -w apps/api
+
+      - name: Rapport de couverture
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage-api
+          path: apps/api/coverage
+          retention-days: 14
+
+  # Couverture des tests : un tableau dans le résumé du run et en commentaire
+  # de la PR ; sur main, les badges du README (branche « badges », lue par
+  # shields.io) sont mis à jour.
+  coverage:
+    name: Couverture des tests (rapport et badges)
+    needs: [checks, test-api]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # pousser les badges sur la branche badges (main uniquement)
+      pull-requests: write # commenter la PR
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v5
+        with:
+          name: coverage-web
+          path: apps/web/coverage
+      - uses: actions/download-artifact@v5
+        with:
+          name: coverage-api
+          path: apps/api/coverage
+
+      - name: Tableau de couverture
+        run: |
+          npm run --silent coverage:report -- badges > coverage.md
+          cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+          cat coverage.md
+
+      - name: Commentaire sur la PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --body-file coverage.md --edit-last --create-if-none
+
+      - name: Badges du README (branche badges)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mv badges "$RUNNER_TEMP/badges"
+          # Branche à part, sans le code : seulement les fichiers des badges
+          if git fetch --depth 1 origin badges:badges; then git checkout -q badges
+          else git checkout -q --orphan badges; fi
+          git rm -rfq . 2>/dev/null || true
+          cp "$RUNNER_TEMP"/badges/*.json .
+          git add coverage-*.json
+          git diff --cached --quiet && { echo 'Badges inchangés'; exit 0; }
+          git commit -qm "Couverture des tests : ${GITHUB_SHA::7}"
+          git push origin badges
 
   # Les builds ne se lancent que si tous les contrôles sont verts
   build-web:

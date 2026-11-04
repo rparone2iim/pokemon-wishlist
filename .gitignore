@@ -31,3 +31,6 @@ blob-report
 
 # Vercel (projet lié, build local)
 .vercel
+
+# Couverture des tests (Vitest)
+coverage

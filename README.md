@@ -1,5 +1,9 @@
 # PokéWishlist
 
+[![CI](https://github.com/rparone2iim/pokemon-wishlist/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/rparone2iim/pokemon-wishlist/actions/workflows/ci.yml?query=branch%3Amain)
+[![coverage web](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/rparone2iim/pokemon-wishlist/badges/coverage-web.json)](#couverture-des-tests)
+[![coverage api](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/rparone2iim/pokemon-wishlist/badges/coverage-api.json)](#couverture-des-tests)
+
 Une liste de Pokémon à capturer (6 maximum, comme une équipe), avec une CI GitHub Actions à chaque push.
 
 Monorepo npm workspaces :
@@ -138,18 +142,19 @@ npm run db:migrate -w apps/api   # init.sql puis les migrations pas encore appli
 
 ## Scripts (à la racine)
 
-| Commande               | Rôle                                                                         |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `npm run dev`          | Front Nuxt en dev                                                            |
-| `npm run dev:api`      | API Hono en dev                                                              |
-| `npm run lint`         | ESLint sur les deux apps (`console.log` et `debugger` interdits)             |
-| `npm run typecheck`    | Vérification TypeScript des deux apps                                        |
-| `npm test`             | Tests Vitest des deux apps                                                   |
-| `npm run test:e2e`     | Tests end-to-end Playwright (démarre front et back)                          |
-| `npm run build`        | Build des deux apps                                                          |
-| `npm run format`       | Formate tout le dépôt (Prettier)                                             |
-| `npm run format:check` | Vérifie le format                                                            |
-| `npm run i18n:check`   | Vérifie que chaque fichier de langue a les clés de `en.json` (front et back) |
+| Commande                            | Rôle                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`                       | Front Nuxt en dev                                                            |
+| `npm run dev:api`                   | API Hono en dev                                                              |
+| `npm run lint`                      | ESLint sur les deux apps (`console.log` et `debugger` interdits)             |
+| `npm run typecheck`                 | Vérification TypeScript des deux apps                                        |
+| `npm test`                          | Tests Vitest des deux apps                                                   |
+| `npm run test:coverage -w apps/api` | Tests Vitest avec la couverture (rapport HTML dans `apps/api/coverage/`)     |
+| `npm run test:e2e`                  | Tests end-to-end Playwright (démarre front et back)                          |
+| `npm run build`                     | Build des deux apps                                                          |
+| `npm run format`                    | Formate tout le dépôt (Prettier)                                             |
+| `npm run format:check`              | Vérifie le format                                                            |
+| `npm run i18n:check`                | Vérifie que chaque fichier de langue a les clés de `en.json` (front et back) |
 
 Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, etc.
 
@@ -187,5 +192,15 @@ Les déploiements sont dans un workflow réutilisable, `.github/workflows/deploy
 3. Ce commit repasse par `deploy.yml` : les trois déploiements, puis les smoke tests vérifient que la production sert bien cette version.
 
 La base n'est pas touchée : les migrations ajoutent sans casser (expand / contract), l'ancien code marche donc avec le nouveau schéma. Le merge suivant sur `main` remet en ligne la dernière version.
+
+## Couverture des tests
+
+`npm run test:coverage -w apps/web` (ou `-w apps/api`) : Vitest mesure la couverture avec v8 (rapport HTML dans `coverage/index.html`, résumé `coverage-summary.json`, `lcov.info`). Dans la CI :
+
+- les jobs de tests Vitest publient le rapport HTML de chaque app en artefact (`coverage-web`, `coverage-api`) ;
+- le job **Couverture des tests** écrit un tableau (lignes, instructions, fonctions, branches) dans le résumé du run, et en commentaire de la PR (mis à jour à chaque push) ;
+- sur `main`, il pousse les badges (`coverage-web.json`, `coverage-api.json`, format shields.io) sur la branche `badges` : les badges en haut de ce README affichent le taux de lignes couvertes du dernier commit de `main`.
+
+Le front n'est couvert qu'en partie par Vitest (les règles de la wishlist, le cache `localStorage`, l'i18n) : ses composants, pages et composables sont testés de bout en bout par Playwright, qui ne compte pas dans ce taux.
 
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
