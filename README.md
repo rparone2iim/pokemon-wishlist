@@ -178,4 +178,14 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 
 Le SSG ne connaît que les pages générées au build : pour qu'une fiche soit indexable, elle doit être prégénérée ; le SSR, lui, rend n'importe quelle fiche.
 
+## Rollback : revenir à la version précédente
+
+Les déploiements sont dans un workflow réutilisable, `.github/workflows/deploy.yml` (API Lambda, Vercel, S3 + CloudFront, smoke tests), qui déploie le commit qu'on lui donne. La CD l'appelle avec le commit mergé ; le **rollback** (`.github/workflows/rollback.yml`) l'appelle avec une version précédente :
+
+1. Onglet **Actions → Rollback → Run workflow** (ou `gh workflow run rollback.yml`).
+2. Le job **Dernier déploiement stable** lit la version en ligne (`GET /health`), puis remonte l'historique de `main` jusqu'au premier merge dont la pipeline CI/CD est verte (`scripts/last-stable.sh`). On peut aussi donner un commit précis (`-f sha=…`).
+3. Ce commit repasse par `deploy.yml` : les trois déploiements, puis les smoke tests vérifient que la production sert bien cette version.
+
+La base n'est pas touchée : les migrations ajoutent sans casser (expand / contract), l'ancien code marche donc avec le nouveau schéma. Le merge suivant sur `main` remet en ligne la dernière version.
+
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
