@@ -21,8 +21,12 @@ export default defineNuxtConfig({
     public: {
       // Adresse de l'API Hono (apps/api), modifiable avec NUXT_PUBLIC_API_BASE
       apiBase: 'http://localhost:3001',
-      // Commit déployé (GITHUB_SHA dans la CI) : affiché en bas de page
-      version: (process.env.GITHUB_SHA ?? 'dev').slice(0, 7),
+      // Commit déployé (APP_VERSION dans la CD, sinon GITHUB_SHA) : affiché en bas de page
+      version: (
+        process.env.APP_VERSION ??
+        process.env.GITHUB_SHA ??
+        'dev'
+      ).slice(0, 7),
     },
   },
   compatibilityDate: '2025-07-15',
