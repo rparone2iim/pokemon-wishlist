@@ -16,6 +16,7 @@ describe('GET /health', () => {
     expect(await res.json()).toEqual({
       status: 'ok',
       service: 'pokewishlist-api',
+      version: 'dev',
     })
   })
 })

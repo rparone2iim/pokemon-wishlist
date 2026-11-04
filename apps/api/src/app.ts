@@ -11,7 +11,12 @@ import type { WishlistStore } from './store.js'
 export interface HealthResponse {
   status: 'ok'
   service: 'pokewishlist-api'
+  /** Commit déployé (7 caractères), « dev » en local. */
+  version: string
 }
+
+/** Version de l'API : APP_VERSION, figée au build du paquet Lambda par la CD. */
+export const appVersion = () => process.env.APP_VERSION ?? 'dev'
 
 export interface AppOptions {
   /** Où la wishlist est gardée (PostgreSQL). */
@@ -46,7 +51,10 @@ export function createApp({
   app.use('*', detectLanguage)
 
   app.get('/health', (c) =>
-    c.json<HealthResponse>({ status: 'ok', service: 'pokewishlist-api' }, 200),
+    c.json<HealthResponse>(
+      { status: 'ok', service: 'pokewishlist-api', version: appVersion() },
+      200,
+    ),
   )
 
   app.route('/pokemon', pokemonRoutes(pokeApi))
