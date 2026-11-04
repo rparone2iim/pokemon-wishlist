@@ -391,3 +391,26 @@ jobs:
           echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
           echo "$html" | grep -q '<h1 id="fiche-25"'
           echo "✔ $SITE_URL sert la version $expected (fiche Pikachu générée)"
+
+  # Smoke tests : une fois l'API, le SSR et le SSG déployés, la production
+  # répond-elle ? /health, /wishlist, l'accueil, une fiche SSR, une fiche SSG,
+  # les fichiers JS du build et les codes HTTP (dont un vrai 404 en SSR).
+  # Une URL critique qui ne répond pas fait échouer la CD.
+  smoke:
+    name: Smoke tests de la production
+    needs: [deploy-api, deploy-web, deploy-ssg]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # Le script n'utilise que Node : pas besoin de npm ci
+      - name: API, SSR et SSG en ligne, sur ce commit
+        run: npm run smoke
+        env:
+          API_URL: ${{ vars.API_URL }}
+          SSR_URL: https://pokewishlist-8bit.vercel.app
+          SSG_URL: ${{ vars.SSG_URL }}
+          EXPECTED_VERSION: ${{ github.sha }}

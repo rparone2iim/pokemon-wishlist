@@ -165,4 +165,6 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 
 6. Sur `main` uniquement, si tout est vert : déploiement de l'API sur AWS Lambda, du front en production sur Vercel (SSR) et du site statique sur S3 + CloudFront (SSG), avec connexion à AWS par OIDC (aucune clé AWS dans GitHub)
 
+7. Puis les **smoke tests** de la production (job **Smoke tests de la production**, `scripts/smoke.mjs`) : `/health` (avec le commit déployé), `/wishlist` et une route inconnue (404) sur l'API ; l'accueil, `/wishlist` et la fiche `/pokemon/pikachu` en SSR et en SSG (bon contenu, bon commit, fichiers JS du build servis) ; un vrai 404 en SSR pour un Pokémon inconnu. Chaque contrôle est réessayé quelques secondes, puis une URL critique qui ne répond pas fait échouer la CD. En local : `API_URL=… SSR_URL=… SSG_URL=… npm run smoke`.
+
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
