@@ -1,0 +1,228 @@
+name: Déploiement
+
+# Déploie un commit en production : l'API (Lambda), le front SSR (Vercel) et le
+# front SSG (S3 + CloudFront), puis lance les smoke tests. Appelé par :
+#   - la CD (ci.yml), avec le commit mergé sur main, une fois toute la CI verte ;
+#   - le rollback (rollback.yml), avec le dernier commit stable.
+# Un rollback suit donc exactement le même chemin qu'un déploiement.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit à déployer (SHA complet)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write # jeton OIDC pour AWS
+
+env:
+  # Version affichée par l'API (/health) et le front (meta app-version)
+  APP_VERSION: ${{ inputs.ref }}
+
+jobs:
+  # L'API part sur AWS Lambda. Connexion à AWS par OIDC : aucune clé AWS
+  # dans GitHub, un rôle qui ne peut que remplacer le code de cette Lambda.
+  # La configuration (DATABASE_URL, CORS_ORIGIN) reste sur AWS, jamais dans GitHub.
+  deploy-api:
+    name: api · Déploiement AWS Lambda
+    runs-on: ubuntu-latest
+    environment:
+      name: production-api
+      url: ${{ vars.API_URL }}/health
+    permissions:
+      contents: read
+      id-token: write # jeton OIDC pour AWS
+    concurrency:
+      group: deploy-api-production
+      cancel-in-progress: false
+    env:
+      AWS_REGION: eu-west-3
+      FUNCTION: ${{ vars.LAMBDA_FUNCTION_NAME }}
+      API_URL: ${{ vars.API_URL }}
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+
+      - name: Connexion à AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_API_ROLE_ARN }}
+          aws-region: eu-west-3
+
+      # APP_VERSION est figé dans le paquet : /health renverra ce commit
+      - name: Paquet AWS Lambda (esbuild)
+        run: |
+          npm run build:lambda
+          (cd dist-lambda && zip -qr function.zip lambda db)
+
+      - name: Mise à jour du code de la Lambda
+        run: |
+          aws lambda update-function-code --function-name "$FUNCTION" \
+            --zip-file fileb://dist-lambda/function.zip \
+            --query '{version: Version, sha256: CodeSha256}' --output text
+          aws lambda wait function-updated --function-name "$FUNCTION"
+
+      - name: L'API en ligne sert bien ce commit
+        run: |
+          expected=${APP_VERSION::7}
+          for i in $(seq 1 20); do
+            health=$(curl -sf "$API_URL/health" || true)
+            echo "$health" | grep -q "\"version\":\"$expected\"" && break
+            sleep 3
+          done
+          echo "$health"
+          echo "$health" | grep -q "\"version\":\"$expected\""
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/wishlist")" = 200
+          echo "✔ $API_URL sert la version $expected, /wishlist répond 200"
+
+  # Le front part en production sur Vercel (SSR).
+  deploy-web:
+    name: web · Déploiement Vercel (production)
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://pokewishlist-8bit.vercel.app
+    # Un seul déploiement à la fois, jamais annulé en plein milieu
+    concurrency:
+      group: deploy-web-production
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SITE_URL: https://pokewishlist-8bit.vercel.app
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+
+      - name: Réglages du projet Vercel (production)
+        run: npx vercel@65.10.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # Le build est fait ici (preset Nitro « vercel ») ; APP_VERSION devient la version affichée
+      - name: Build Nuxt SSR pour Vercel
+        run: npx vercel@65.10.0 build --prod --token="$VERCEL_TOKEN"
+        env:
+          # Nitro produit directement le format attendu par Vercel (.vercel/output)
+          NITRO_PRESET: vercel
+          # Les 151 premières fiches Pokémon sont prégénérées en HTML au build
+          PRERENDER_POKEMON: 151
+
+      - name: Déploiement en production
+        run: npx vercel@65.10.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Le site en ligne sert bien ce commit, en SSR
+        run: |
+          expected=${APP_VERSION::7}
+          for i in $(seq 1 20); do
+            html=$(curl -sf "$SITE_URL/pokemon/pikachu" || true)
+            echo "$html" | grep -q "name=\"app-version\" content=\"$expected\"" && break
+            sleep 3
+          done
+          echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
+          echo "$html" | grep -qi '<h1 id="fiche-25"'
+          echo "✔ $SITE_URL sert la version $expected, fiche Pikachu rendue par le serveur"
+
+  # Le site statique (SSG) part sur S3 + CloudFront. Connexion à AWS par OIDC : aucune
+  # clé AWS dans GitHub, un rôle limité à ce bucket et à cette distribution.
+  deploy-ssg:
+    name: web · Déploiement statique S3 + CloudFront
+    runs-on: ubuntu-latest
+    environment:
+      name: production-ssg
+      url: ${{ vars.SSG_URL }}
+    permissions:
+      contents: read
+      id-token: write # jeton OIDC pour AWS
+    concurrency:
+      group: deploy-ssg-production
+      cancel-in-progress: false
+    env:
+      AWS_REGION: eu-west-3
+      BUCKET: ${{ vars.SSG_BUCKET }}
+      DISTRIBUTION_ID: ${{ vars.SSG_DISTRIBUTION_ID }}
+      SITE_URL: ${{ vars.SSG_URL }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+
+      - name: Connexion à AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_SSG_ROLE_ARN }}
+          aws-region: eu-west-3
+
+      # 1. generate : le site statique, branché sur l'API AWS, 151 fiches prégénérées
+      - name: Génération statique (nuxt generate)
+        run: npm run generate -w apps/web
+        env:
+          NUXT_PUBLIC_API_BASE: ${{ vars.API_URL }}
+          PRERENDER_POKEMON: 151
+
+      # 2. sync S3 : fichiers du build gardés un an, pages toujours revalidées
+      - name: Envoi sur S3
+        working-directory: apps/web/.output/public
+        run: |
+          aws s3 sync _nuxt "s3://$BUCKET/_nuxt" --delete --only-show-errors \
+            --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync . "s3://$BUCKET" --delete --only-show-errors \
+            --exclude "_nuxt/*" --cache-control "public, max-age=0, must-revalidate"
+
+      # 3. invalidation CloudFront : le CDN sert tout de suite la nouvelle version
+      - name: Invalidation du cache CloudFront
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/*" --query Invalidation.Id --output text)
+          echo "Invalidation $id"
+          aws cloudfront wait invalidation-completed --distribution-id "$DISTRIBUTION_ID" --id "$id"
+
+      - name: Le site statique sert bien ce commit
+        run: |
+          expected=${APP_VERSION::7}
+          html=$(curl -sf "$SITE_URL/pokemon/pikachu")
+          echo "$html" | grep -q "name=\"app-version\" content=\"$expected\""
+          echo "$html" | grep -q '<h1 id="fiche-25"'
+          echo "✔ $SITE_URL sert la version $expected (fiche Pikachu générée)"
+
+  # Smoke tests : une fois l'API, le SSR et le SSG déployés, la production
+  # répond-elle ? /health, /wishlist, l'accueil, une fiche SSR, une fiche SSG,
+  # les fichiers JS du build et les codes HTTP (dont un vrai 404 en SSR).
+  # Une URL critique qui ne répond pas fait échouer la CD.
+  smoke:
+    name: Smoke tests de la production
+    needs: [deploy-api, deploy-web, deploy-ssg]
+    runs-on: ubuntu-latest
+    steps:
+      # Les scripts de contrôle du pipeline en cours (pas ceux du commit déployé)
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # Le script n'utilise que Node : pas besoin de npm ci
+      - name: API, SSR et SSG en ligne, sur ce commit
+        run: npm run smoke
+        env:
+          API_URL: ${{ vars.API_URL }}
+          SSR_URL: https://pokewishlist-8bit.vercel.app
+          SSG_URL: ${{ vars.SSG_URL }}
+          EXPECTED_VERSION: ${{ inputs.ref }}
+
+      # SEO : le HTML brut (sans JavaScript) des fiches, en SSR et en SSG
+      - name: SEO · fiches lisibles sans JavaScript (SSR et SSG)
+        run: npm run seo:html
+        env:
+          SSR_URL: https://pokewishlist-8bit.vercel.app
+          SSG_URL: ${{ vars.SSG_URL }}

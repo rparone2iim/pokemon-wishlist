@@ -1,0 +1,75 @@
+name: Rollback
+
+# Revenir à la version précédente : lancé à la main (onglet Actions → Rollback →
+# Run workflow), il remet en ligne le dernier déploiement stable avant la
+# version en ligne, ou un commit choisi. Le commit repasse par la CD habituelle
+# (deploy.yml) : API Lambda, front Vercel (SSR), front S3 + CloudFront (SSG),
+# puis les smoke tests vérifient que la production sert bien cette version.
+#
+# La base n'est pas modifiée : les migrations sont faites pour que l'ancien
+# code fonctionne encore avec le nouveau schéma (expand / contract).
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit à remettre en ligne (vide = le dernier déploiement stable avant la version en ligne)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Jamais deux rollbacks en même temps
+concurrency:
+  group: rollback
+  cancel-in-progress: false
+
+jobs:
+  target:
+    name: Dernier déploiement stable
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # lire les runs verts de la CI
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # tout l'historique de main
+
+      - name: Version en ligne et commit à remettre
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API_URL: ${{ vars.API_URL }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          current=$(curl -sf "$API_URL/health" | jq -r .version)
+          if [ -n "$INPUT_SHA" ]; then
+            sha=$(git rev-parse --verify "$INPUT_SHA^{commit}")
+            git grep -q APP_VERSION "$sha" -- apps/web/nuxt.config.ts ||
+              { echo "::error::${sha::7} est trop ancien pour un rollback"; exit 1; }
+          else
+            sha=$(bash scripts/last-stable.sh "$current")
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          {
+            echo '## Rollback'
+            echo
+            echo '| | Commit |'
+            echo '| --- | --- |'
+            echo "| En ligne | \`$current\` |"
+            echo "| Remis en ligne | \`${sha::7}\` $(git log -1 --format=%s "$sha") |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rollback:
+    name: Remise en ligne
+    needs: target
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ needs.target.outputs.sha }}
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
