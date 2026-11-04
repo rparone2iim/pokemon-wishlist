@@ -414,3 +414,10 @@ jobs:
           SSR_URL: https://pokewishlist-8bit.vercel.app
           SSG_URL: ${{ vars.SSG_URL }}
           EXPECTED_VERSION: ${{ github.sha }}
+
+      # SEO : le HTML brut (sans JavaScript) des fiches, en SSR et en SSG
+      - name: SEO · fiches lisibles sans JavaScript (SSR et SSG)
+        run: npm run seo:html
+        env:
+          SSR_URL: https://pokewishlist-8bit.vercel.app
+          SSG_URL: ${{ vars.SSG_URL }}
