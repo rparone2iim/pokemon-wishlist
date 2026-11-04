@@ -651,3 +651,149 @@ Tests du runner (`apps/api/test/migrate.test.ts`), sur une base PostgreSQL neuve
  ✓ test/migrate.test.ts > runner de migrations SQL > refuse une migration modifiée après avoir été appliquée
       Tests  4 passed (4)
 ```
+
+## E2E · Extension · fiche, langues, persistance et likes
+
+`apps/web/e2e/extension.spec.ts`, du navigateur jusqu'à l'API et sa base PostgreSQL. La fiche (`pokemon.spec.ts`), les langues (`i18n.spec.ts`) et la persistance (`wishlist.spec.ts`) avaient déjà leurs tests ; les likes n'en avaient pas.
+
+- **Likes** : un Pokémon ajouté commence à 0 ; ♥ ajoute un like enregistré par l'API (`POST /wishlist/:id/like` → 200), seulement sur ce Pokémon ; les likes restent après un rechargement ; ceux d'un autre client s'affichent au chargement ; retirer puis remettre un Pokémon remet ses likes à 0.
+- **Parcours étendu** : fiche `/pokemon/pikachu` en URL directe (anglais par défaut) → ajout depuis la fiche → passage en français → like → rechargement : la langue (cookie), la wishlist et le like (base) sont gardés.
+
+Vérification : les parcours passent du navigateur jusqu'à l'API, sur Chromium et WebKit.
+
+```text
+$ npx playwright test e2e/extension.spec.ts
+  ✓  [chromium] › likes › un Pokémon ajouté commence à 0 like
+  ✓  [chromium] › likes › ♥ ajoute un like, enregistré par l’API, et seulement sur ce Pokémon
+  ✓  [chromium] › likes › les likes restent après un rechargement (ils viennent de la base)
+  ✓  [chromium] › likes › les likes d’un autre client s’affichent au chargement
+  ✓  [chromium] › likes › retirer puis remettre un Pokémon remet ses likes à 0
+  ✓  [chromium] › parcours étendu › fiche → wishlist → like → langue → rechargement : tout est gardé
+  ✓  [webkit] › … (les 6 mêmes)
+  12 passed
+```
+
+Dans la CI, le job **web · Tests E2E (Playwright)** les lance avec les autres (PR #29).
+
+## CD · Back · Lambda déployée depuis GitHub
+
+- Job **api · Déploiement AWS Lambda** : sur `main` uniquement, après toute la CI verte. Il construit le paquet (le commit y est figé), remplace le code de la fonction `pokewishlist-api`, puis vérifie que `/health` renvoie ce commit et que `/wishlist` répond 200.
+- **Aucun secret AWS dans GitHub** : connexion par OIDC. Le rôle `pokewishlist-github-api-deploy` (`apps/api/scripts/setup-api-cd.sh`) n'est endossable que par ce dépôt, depuis l'environnement `production-api`, et ne peut que `UpdateFunctionCode` sur cette Lambda. `DATABASE_URL` reste dans la configuration de la Lambda.
+
+Vérification : un merge met à jour l'API Lambda automatiquement. Avant le merge de #30, `/health` ne donnait pas de version ; après ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41802088855)) :
+
+```text
+{"status":"ok","service":"pokewishlist-api","version":"88ace8f"}
+✔ https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com sert la version 88ace8f, /wishlist répond 200
+```
+
+Chaque merge suivant met la version à jour (`695bdcf`, `535a020`, `043ab29`, `bcd17bb`).
+
+## CD · Smoke tests · la production contrôlée après deploy
+
+Job **Smoke tests de la production** (`scripts/smoke.mjs`), après les trois déploiements. Vérification : la CD échoue si une URL critique ne répond pas. Premier passage après le merge de #31 ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41802981140)) :
+
+```text
+✔ API · /health — HTTP 200
+✔ API · /wishlist (base Supabase) — HTTP 200
+✔ API · route inconnue — HTTP 404
+✔ SSR · accueil — HTTP 200
+✔ SSR · /wishlist — HTTP 200
+✔ SSR · fiche /pokemon/pikachu — HTTP 200
+✔ SSG · accueil — HTTP 200
+✔ SSG · /wishlist — HTTP 200
+✔ SSG · fiche /pokemon/pikachu — HTTP 200
+✔ SSR · Pokémon introuvable — HTTP 404
+10 vérifications vertes
+```
+
+Et en rouge, contre la production avant l'étape 8 (l'API ne donnait pas encore sa version), puis avec une URL cassée :
+
+```text
+$ API_URL=… SSR_URL=… SSG_URL=… EXPECTED_VERSION=a27e81f npm run smoke
+✘ API · /health — https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com/health
+    contenu attendu absent : "version":"a27e81f"
+…
+Smoke tests en échec : la production ne répond pas comme prévu   (code 1)
+
+$ SSG_URL=https://d1kkqanpvbsbt6.cloudfront.net/sous-dossier-inexistant npm run smoke
+✘ SSG · /wishlist — …/sous-dossier-inexistant/wishlist
+    contenu attendu absent : id="wishlist-title"
+✘ SSG · fiche /pokemon/pikachu — …/sous-dossier-inexistant/pokemon/pikachu
+    contenu attendu absent : <h1 id="fiche-25"
+Smoke tests en échec : la production ne répond pas comme prévu   (code 1)
+```
+
+Tests du script sur un faux site local (`scripts/smoke.test.mjs`) : API en 502, ancienne version en ligne, coquille vide, fichiers JS manquants, site injoignable.
+
+## SEO · HTML · SSR et SSG sans JavaScript
+
+`scripts/seo-html.mjs` récupère le HTML de fiches par HTTP, **sans exécuter JavaScript**, et vérifie `<title>`, `<h1>`, description, stats et texte visible. Lancé après chaque déploiement ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41803570805)) :
+
+```text
+✔ SSR · fiche /pokemon/pikachu — HTTP 200
+✔ SSG · fiche /pokemon/pikachu — HTTP 200
+Mode  Fiche                Octets  Mots  <title>                           Verdict
+SSR   /pokemon/bulbasaur     7640    65  Bulbasaur · PokéWishlist          ✔ HTML complet
+SSG   /pokemon/bulbasaur     7640    65  Bulbasaur · PokéWishlist          ✔ HTML complet
+SSR   /pokemon/pikachu       7515    65  Pikachu · PokéWishlist            ✔ HTML complet
+SSG   /pokemon/pikachu       7515    65  Pikachu · PokéWishlist            ✔ HTML complet
+SSR   /pokemon/mewtwo        7463    59  Mewtwo · PokéWishlist             ✔ HTML complet
+SSG   /pokemon/mewtwo        7463    59  Mewtwo · PokéWishlist             ✔ HTML complet
+SSR   /pokemon/chikorita     8148    78  Chikorita · PokéWishlist          ✔ HTML complet
+SSG   /pokemon/chikorita     1538     0  PokéWishlist                      — coquille (attendu : non prégénérée)
+Toutes les fiches attendues sont lisibles sans JavaScript
+```
+
+Vérification : les pages ne sont pas des coquilles HTML vides, en SSR comme en SSG, pour les 151 fiches prégénérées. Seule limite : une fiche non prégénérée (Chikorita, n° 152) n'existe en SSG que sous forme de coquille (`200.html`, 0 mot, `<title>` générique), alors que le SSR la rend à la demande.
+
+## Visibilité GitHub · couverture des tests
+
+- `npm run test:coverage` (Vitest + v8) dans les deux apps ; rapport HTML en artefact (`coverage-web`, `coverage-api`).
+- Job **Couverture des tests** : tableau dans le résumé du run et [en commentaire de la PR #34](https://github.com/rparone2iim/pokemon-wishlist/pull/34#issuecomment-6626646420).
+- Sur `main`, badges poussés sur la branche `badges` et affichés en haut du README.
+
+Vérification : après le push sur `main` ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41804850052)), le badge et le rapport affichent le taux de couverture :
+
+```text
+$ git show origin/badges:coverage-api.json
+{"schemaVersion":1,"label":"coverage api","message":"90.1%","color":"brightgreen"}
+$ git show origin/badges:coverage-web.json
+{"schemaVersion":1,"label":"coverage web","message":"25.3%","color":"orange"}
+```
+
+| App                   |           Lignes |     Instructions |       Fonctions |         Branches |
+| --------------------- | ---------------: | ---------------: | --------------: | ---------------: |
+| Front Nuxt (apps/web) |  25.3 % (74/293) |  26.5 % (91/343) | 29.2 % (31/106) |  54.9 % (73/133) |
+| API Hono (apps/api)   | 90.1 % (200/222) | 90.0 % (226/251) |  88.2 % (60/68) | 86.5 % (115/133) |
+
+## CD · Rollback · revenir à la version précédente
+
+Les déploiements sont dans un workflow réutilisable (`.github/workflows/deploy.yml`) qui déploie le commit qu'on lui donne. La CD l'appelle avec le commit mergé ; le workflow **Rollback** (`.github/workflows/rollback.yml`, lancé à la main : `gh workflow run rollback.yml`) l'appelle avec le dernier déploiement stable, retrouvé par `scripts/last-stable.sh` : en remontant `main` depuis la version en ligne (`/health`), le premier merge dont la pipeline CI/CD est verte.
+
+Vérification : en ligne, `bcd17bb` (merge de #34) ; le rollback ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41805699456)) identifie `043ab29` et le remet en ligne sur les trois cibles, puis les smoke tests confirment que le site fonctionne :
+
+```text
+En ligne : bcd17bb · dernier déploiement stable avant : 043ab29 (Merge pull request #33 from rparone2iim/cd-rollback)
+{"status":"ok","service":"pokewishlist-api","version":"043ab29"}
+✔ https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com sert la version 043ab29, /wishlist répond 200
+✔ API · /health — HTTP 200
+✔ API · /wishlist (base Supabase) — HTTP 200
+✔ API · route inconnue — HTTP 404
+✔ SSR · accueil — HTTP 200
+✔ SSR · /wishlist — HTTP 200
+✔ SSR · fiche /pokemon/pikachu — HTTP 200
+✔ SSG · accueil — HTTP 200
+✔ SSG · /wishlist — HTTP 200
+✔ SSG · fiche /pokemon/pikachu — HTTP 200
+✔ SSR · Pokémon introuvable — HTTP 404
+10 vérifications vertes
+Toutes les fiches attendues sont lisibles sans JavaScript
+
+$ curl -s https://pokewishlist-8bit.vercel.app/pokemon/pikachu | grep -o 'app-version" content="[^"]*'
+app-version" content="043ab29
+$ curl -s https://d1kkqanpvbsbt6.cloudfront.net/pokemon/pikachu | grep -o 'app-version" content="[^"]*'
+app-version" content="043ab29
+```
+
+Un 2e rollback lancé juste après ([run](https://github.com/rparone2iim/pokemon-wishlist/actions/runs/41805750655)) est refusé : depuis `043ab29`, le déploiement stable précédent (`535a020`) date d'avant `deploy.yml` et ne saurait pas afficher sa version, donc rien n'est déployé (« Dernier déploiement stable trop ancien pour un rollback : 535a020 »). Le merge suivant sur `main` remet en ligne la dernière version.
