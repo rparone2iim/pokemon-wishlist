@@ -167,4 +167,15 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 
 7. Puis les **smoke tests** de la production (job **Smoke tests de la production**, `scripts/smoke.mjs`) : `/health` (avec le commit déployé), `/wishlist` et une route inconnue (404) sur l'API ; l'accueil, `/wishlist` et la fiche `/pokemon/pikachu` en SSR et en SSG (bon contenu, bon commit, fichiers JS du build servis) ; un vrai 404 en SSR pour un Pokémon inconnu. Chaque contrôle est réessayé quelques secondes, puis une URL critique qui ne répond pas fait échouer la CD. En local : `API_URL=… SSR_URL=… SSG_URL=… npm run smoke`.
 
+8. Enfin, le **contrôle SEO** (`scripts/seo-html.mjs`) : le HTML brut de fiches Pokémon, récupéré par HTTP **sans exécuter JavaScript**, comme un robot. En SSR et en SSG, le `<title>`, le `<h1>`, la description et les stats doivent être dans le HTML. En local : `SSR_URL=… SSG_URL=… npm run seo:html`.
+
+## SEO : SSR et SSG sans JavaScript
+
+| Fiche                            | SSR (Vercel)                                   | SSG (S3 + CloudFront)                                       |
+| -------------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| Prégénérée au build (n° 1 à 151) | HTML complet (servi tel quel, généré au build) | HTML complet (`pokemon/<nom>/index.html`)                   |
+| Autre (n° 152 et suivants)       | HTML complet, rendu à la demande               | coquille vide (`200.html`) : le contenu n'arrive qu'avec JS |
+
+Le SSG ne connaît que les pages générées au build : pour qu'une fiche soit indexable, elle doit être prégénérée ; le SSR, lui, rend n'importe quelle fiche.
+
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
