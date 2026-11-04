@@ -16,9 +16,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "i18n:check": "node scripts/check-locales.mjs",
-    "test:scripts": "node --test scripts/check-locales.test.mjs scripts/smoke.test.mjs scripts/seo-html.test.mjs",
+    "test:scripts": "node --test scripts/check-locales.test.mjs scripts/smoke.test.mjs scripts/seo-html.test.mjs scripts/coverage-report.test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "seo:html": "node scripts/seo-html.mjs",
+    "coverage:report": "node scripts/coverage-report.mjs",
     "test:e2e": "npm run test:e2e -w @pokewishlist/web"
   },
   "devDependencies": {
