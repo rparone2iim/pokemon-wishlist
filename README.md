@@ -202,5 +202,3 @@ La base n'est pas touchée : les migrations ajoutent sans casser (expand / contr
 - sur `main`, il pousse les badges (`coverage-web.json`, `coverage-api.json`, format shields.io) sur la branche `badges` : les badges en haut de ce README affichent le taux de lignes couvertes du dernier commit de `main`.
 
 Le front n'est couvert qu'en partie par Vitest (les règles de la wishlist, le cache `localStorage`, l'i18n) : ses composants, pages et composables sont testés de bout en bout par Playwright, qui ne compte pas dans ce taux.
-
-Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
