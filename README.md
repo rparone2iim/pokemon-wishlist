@@ -124,6 +124,8 @@ L'API Hono tourne aussi sur **AWS Lambda** (Node 22, arm64, Paris), derrière un
 - `npm run build:lambda -w apps/api` : un seul fichier (esbuild) + le certificat de Supabase, dans `dist-lambda/`.
 - `npm run deploy:lambda -w apps/api` : crée ou met à jour le rôle IAM, la fonction Lambda et l'API Gateway (AWS CLI, connecté avec `aws login`). Le script peut être relancé.
 - Variables de la Lambda : `DATABASE_URL` (le pooler Supabase en mode transaction, port 6543, conseillé pour Lambda ; lu dans `LAMBDA_DATABASE_URL` de `apps/api/.env`) et `CORS_ORIGIN` (le front autorisé). Le CORS est géré par Hono.
+- **CD** : le job **api · Déploiement AWS Lambda** de `ci.yml` ne tourne que sur `main`, une fois toute la CI verte. Il construit le paquet (le commit est figé dedans), remplace le code de la Lambda (`aws lambda update-function-code`), puis vérifie que `GET /health` renvoie ce commit (`"version"`) et que `/wishlist` répond 200.
+- Connexion à AWS par **OIDC**, sans aucune clé dans GitHub : le rôle `pokewishlist-github-api-deploy` ne peut qu'être endossé par ce dépôt, depuis l'environnement GitHub `production-api`, et ne peut que remplacer le code de la fonction `pokewishlist-api`. La configuration de la Lambda (`DATABASE_URL`, `CORS_ORIGIN`) reste sur AWS. Mise en place : `bash apps/api/scripts/setup-api-cd.sh` (crée le rôle et les variables GitHub `AWS_API_ROLE_ARN` et `LAMBDA_FUNCTION_NAME`).
 - Pour brancher le front sur l'API AWS : `NUXT_PUBLIC_API_BASE=https://ds5i6cov6l.execute-api.eu-west-3.amazonaws.com`.
 
 ## Migrations SQL
@@ -161,6 +163,6 @@ Pour une seule app : `npm run test -w apps/api`, `npm run build -w apps/web`, et
 4. Build des deux apps si tout est vert, puis l'API est lancée et `GET /health` doit renvoyer `200`
 5. En parallèle, tests end-to-end : la CI construit et **démarre Hono et Nuxt** (et une fausse PokéAPI), vérifie qu'ils répondent, puis lance Playwright (Chromium et WebKit)
 
-6. Sur `main` uniquement, si tout est vert : déploiement du front en production sur Vercel (SSR) et du site statique sur S3 + CloudFront (SSG), avec connexion à AWS par OIDC (aucune clé AWS dans GitHub)
+6. Sur `main` uniquement, si tout est vert : déploiement de l'API sur AWS Lambda, du front en production sur Vercel (SSR) et du site statique sur S3 + CloudFront (SSG), avec connexion à AWS par OIDC (aucune clé AWS dans GitHub)
 
 Les preuves du TP (liens et captures de la CI rouge puis verte) sont dans [PREUVES.md](PREUVES.md).
